@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Definir la URL base de la API
-API_URL="https://5oafsilfoy.execute-api.localhost.localstack.cloud:4566/dev/"
+API_URL="https://texwr1fbp4.execute-api.localhost.localstack.cloud:4566/dev/"
 
 # Función para probar conductores
 test_conductores() {
@@ -21,18 +21,14 @@ test_conductores() {
     CONDUCTOR_ID=$(echo "$CONDUCTOR_RESPONSE" | jq -r '.id')
 
     echo ""
-    echo ""
     echo -e "\nProbando GET /conductores/$CONDUCTOR_ID"
     curl -s -X GET "$API_URL/conductores/$CONDUCTOR_ID"
-    echo ""
     echo ""
     
     echo "ID del conductor creado: $CONDUCTOR_ID"
     echo ""
-    echo ""
     echo -e "\nProbando GET /conductores"
     curl -s -X GET "$API_URL/conductores"
-    echo ""
     echo ""
 
 
@@ -43,7 +39,6 @@ test_conductores() {
             "Estado": "Aprobado"
         }'
     echo ""
-    echo ""
 
     echo -e "\nProbando DELETE /conductores/$CONDUCTOR_ID"
     curl -s -X DELETE "$API_URL/conductores/$CONDUCTOR_ID"
@@ -51,7 +46,6 @@ test_conductores() {
 
 # Función para probar rutas
 test_rutas() {
-    echo ""
     echo ""
 
     echo -e "\nProbando POST /rutas"
@@ -69,22 +63,18 @@ test_rutas() {
 
     echo "Respuesta: $RUTA_RESPONSE"
     echo ""
-    echo ""
 
     # Extraer ID de la ruta
     RUTA_ID=$(echo "$RUTA_RESPONSE" | jq -r '.id')
     echo "ID de la ruta creada: $RUTA_ID"
     echo ""
-    echo ""
 
     echo -e "\nProbando GET /rutas"
     curl -s -X GET "$API_URL/rutas"
     echo ""
-    echo ""
 
     echo -e "\nProbando GET /rutas/$RUTA_ID"
     curl -s -X GET "$API_URL/rutas/$RUTA_ID"
-    echo ""
     echo ""
 
     echo -e "\nProbando PUT /rutas/$RUTA_ID"
@@ -94,12 +84,49 @@ test_rutas() {
             "estado": "inactiva"
         }'
     echo ""
-    echo ""
 
     echo -e "\nProbando DELETE /rutas/$RUTA_ID"
     curl -s -X DELETE "$API_URL/rutas/$RUTA_ID"
 }
 
+
+# Función para probar paradas
+test_paradas() {
+    echo -e "\nProbando POST /paradas"
+    PARADA_RESPONSE=$(curl -s -X POST "$API_URL/paradas" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "rutaId": "12345",
+            "nombre": "Parada Central",
+            "direccion": "Av. Siempre Viva 742",
+            "descripcion": "Parada principal en el centro",
+            "orden": 1
+        }')
+
+    echo "Respuesta: $PARADA_RESPONSE"
+
+    # Extraer ID de la parada
+    PARADA_ID=$(echo "$PARADA_RESPONSE" | jq -r '.id')
+
+    echo -e "\nProbando GET /paradas"
+    curl -s -X GET "$API_URL/paradas"
+    echo ""
+
+    echo -e "\nProbando GET /paradas/$PARADA_ID"
+    curl -s -X GET "$API_URL/paradas/$PARADA_ID"
+    echo ""
+
+    echo -e "\nProbando PUT /paradas/$PARADA_ID"
+    curl -s -X PUT "$API_URL/paradas/$PARADA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "descripcion": "Parada principal renovada"
+        }'
+    echo ""
+
+    echo -e "\nProbando DELETE /paradas/$PARADA_ID"
+    curl -s -X DELETE "$API_URL/paradas/$PARADA_ID"
+}
 # # Verificar que jq está instalado
 if ! command -v jq &> /dev/null
 then
@@ -110,3 +137,4 @@ fi
 # Ejecutar todas las pruebas
 test_conductores
 test_rutas
+test_paradas

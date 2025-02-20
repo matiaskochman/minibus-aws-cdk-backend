@@ -14,6 +14,7 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
     const handlers = new HandlersConstruct(this, "Handlers", {
       driversTable: database.driversTable,
       routesTable: database.routesTable,
+      paradasTable: database.paradasTable,
     });
 
     // Configurar API Gateway
@@ -82,5 +83,34 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
       "DELETE",
       new apigateway.LambdaIntegration(handlers.rutasHandler)
     );
+
+    // Endpoints para paradas
+    const paradasResource = api.root.addResource("paradas");
+    paradasResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.paradasHandler)
+    );
+    paradasResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.paradasHandler)
+    );
+    const paradaResource = paradasResource.addResource("{id}");
+    paradaResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.paradasHandler)
+    );
+    paradaResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(handlers.paradasHandler)
+    );
+    paradaResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(handlers.paradasHandler)
+    );
+
+    // new cdk.CfnOutput(this, "ApiUrl", {
+    //   value: api.urlForPath("/conductores"),
+    //   description: "Endpoint de conductores",
+    // });
   }
 }

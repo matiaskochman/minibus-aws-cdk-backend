@@ -5,8 +5,6 @@ export interface Ruta {
   origen: string;
   destino: string;
   horarios: string[];
-  tarifa: number;
-  asientosDisponibles: number;
-  estado: "activa" | "inactiva" | "completa";
+  estado: "activa" | "inactiva";
   createdAt: string;
 }

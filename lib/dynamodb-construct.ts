@@ -9,6 +9,7 @@ export class DynamoDBConstruct extends Construct {
   public readonly routesTable: dynamodb.Table;
   public readonly tripsTable: dynamodb.Table;
   public readonly commissionsTable: dynamodb.Table;
+  public readonly paradasTable: dynamodb.Table; // Nueva tabla
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
@@ -56,6 +57,16 @@ export class DynamoDBConstruct extends Construct {
         name: "conductorId",
         type: dynamodb.AttributeType.STRING,
       },
+    });
+    // Tabla para Paradas
+    this.paradasTable = new dynamodb.Table(this, "ParadasTable", {
+      tableName: "Paradas",
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+    this.paradasTable.addGlobalSecondaryIndex({
+      indexName: "ParadasByRutaIndex",
+      partitionKey: { name: "direccion", type: dynamodb.AttributeType.STRING },
     });
   }
 }
