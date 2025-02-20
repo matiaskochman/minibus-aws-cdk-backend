@@ -10,6 +10,7 @@ export class DynamoDBConstruct extends Construct {
   public readonly tripsTable: dynamodb.Table;
   public readonly commissionsTable: dynamodb.Table;
   public readonly paradasTable: dynamodb.Table; // Nueva tabla
+  public readonly paradasDeRutaTable: dynamodb.Table; // Nueva tabla
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
@@ -40,8 +41,6 @@ export class DynamoDBConstruct extends Construct {
       partitionKey: { name: "vendedorId", type: dynamodb.AttributeType.STRING },
     });
 
-    // Otras tablas (similar para vendors, routes, trips, commissions)
-    // ... [implementación similar para las demás tablas]
     /**
      * 📌 Tabla de Rutas
      */
@@ -67,6 +66,12 @@ export class DynamoDBConstruct extends Construct {
     this.paradasTable.addGlobalSecondaryIndex({
       indexName: "ParadasByRutaIndex",
       partitionKey: { name: "direccion", type: dynamodb.AttributeType.STRING },
+    });
+    // Tabla para Paradas
+    this.paradasDeRutaTable = new dynamodb.Table(this, "ParadasDeRutaTable", {
+      tableName: "ParadasDeRuta",
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
     });
   }
 }

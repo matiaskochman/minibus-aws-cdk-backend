@@ -1,10 +1,8 @@
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/types/ruta.ts
+import { ParadaDeRuta } from "./paradaDeRuta";
 export interface Ruta {
   id: string;
   conductorId: string;
-  origen: string;
-  destino: string;
-  horarios: string[];
   estado: "activa" | "inactiva";
+  paradasDeRuta: ParadaDeRuta[];
   createdAt: string;
 }

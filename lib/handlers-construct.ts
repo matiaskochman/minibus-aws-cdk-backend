@@ -10,12 +10,14 @@ interface HandlersConstructProps {
   driversTable: dynamodb.Table;
   routesTable: dynamodb.Table;
   paradasTable: dynamodb.Table;
+  paradasDeRutaTable: dynamodb.Table;
 }
 
 export class HandlersConstruct extends Construct {
   public readonly conductoresHandler: lambdaNode.NodejsFunction;
   public readonly rutasHandler: lambdaNode.NodejsFunction;
   public readonly paradasHandler: lambdaNode.NodejsFunction;
+  public readonly paradasDeRutaHandler: lambdaNode.NodejsFunction;
 
   constructor(scope: Construct, id: string, props: HandlersConstructProps) {
     super(scope, id);
@@ -63,8 +65,23 @@ export class HandlersConstruct extends Construct {
       }
     );
 
+    this.paradasDeRutaHandler = new lambdaNode.NodejsFunction(
+      this,
+      "ParadasDeRutaHandler",
+      {
+        runtime: lambda.Runtime.NODEJS_18_X,
+        entry: path.join(__dirname, "../handlers/paradasDeRuta.ts"),
+        handler: "handler",
+        environment: {
+          USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
+          PARADAS_TABLE: props.paradasDeRutaTable.tableName,
+        },
+        bundling: { externalModules: ["@aws-sdk"] },
+      }
+    );
     props.driversTable.grantReadWriteData(this.conductoresHandler);
     props.routesTable.grantReadWriteData(this.rutasHandler);
     props.paradasTable.grantReadWriteData(this.paradasHandler);
+    props.paradasDeRutaTable.grantReadWriteData(this.paradasDeRutaHandler);
   }
 }

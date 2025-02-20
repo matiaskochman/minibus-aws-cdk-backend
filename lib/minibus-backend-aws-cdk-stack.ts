@@ -15,6 +15,7 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
       driversTable: database.driversTable,
       routesTable: database.routesTable,
       paradasTable: database.paradasTable,
+      paradasDeRutaTable: database.paradasDeRutaTable,
     });
 
     // Configurar API Gateway
@@ -106,6 +107,29 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
     paradaResource.addMethod(
       "DELETE",
       new apigateway.LambdaIntegration(handlers.paradasHandler)
+    );
+
+    const paradasDeRutaResource = api.root.addResource("paradasDeRuta");
+    paradasDeRutaResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler)
+    );
+    paradasDeRutaResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler)
+    );
+    const paradaDeRutaResource = paradasDeRutaResource.addResource("{id}");
+    paradaDeRutaResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler)
+    );
+    paradaDeRutaResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler)
+    );
+    paradaDeRutaResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler)
     );
 
     // new cdk.CfnOutput(this, "ApiUrl", {
