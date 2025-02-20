@@ -1,15 +1,3 @@
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/bin/minibus-backend-aws-cdk.ts
-#!/usr/bin/env node
-import * as cdk from "aws-cdk-lib";
-import { MinibusBackendAwsCdkStack } from "../lib/minibus-backend-aws-cdk-stack";
-import "dotenv/config";
-const app = new cdk.App();
-new MinibusBackendAwsCdkStack(app, "MinibusBackendAwsCdkStack", {
-  /* For more information, see https:
-});
-
-/**********/
-
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/cdk.json
 {
   "app": "npx ts-node --prefer-ts-exts bin/minibus-backend-aws-cdk.ts",
@@ -100,605 +88,19 @@ new MinibusBackendAwsCdkStack(app, "MinibusBackendAwsCdkStack", {
 
 /**********/
 
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/dist/bin/minibus-backend-aws-cdk.js
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/bin/minibus-backend-aws-cdk.ts
 #!/usr/bin/env node
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-const cdk = require("aws-cdk-lib");
-const minibus_backend_aws_cdk_stack_1 = require("../lib/minibus-backend-aws-cdk-stack");
-require("dotenv/config");
+import * as cdk from "aws-cdk-lib";
+import { MinibusBackendAwsCdkStack } from "../lib/minibus-backend-aws-cdk-stack";
+import "dotenv/config";
 const app = new cdk.App();
-new minibus_backend_aws_cdk_stack_1.MinibusBackendAwsCdkStack(app, "MinibusBackendAwsCdkStack", {
-/* For more information, see https:
+new MinibusBackendAwsCdkStack(app, "MinibusBackendAwsCdkStack", {
+  /* For more information, see https:
 });
 
 /**********/
 
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/dist/handlers/conductores.js
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.handler = void 0;
-const client_dynamodb_1 = require("@aws-sdk/client-dynamodb");
-const lib_dynamodb_1 = require("@aws-sdk/lib-dynamodb");
-const uuid_1 = require("uuid");
-const isLocal = process.env.USE_LOCALSTACK === "true";
-const ddbClient = new client_dynamodb_1.DynamoDBClient({
-    region: "us-east-1",
-    ...(isLocal && {
-        endpoint: "http:
-        credentials: {
-            accessKeyId: "test",
-            secretAccessKey: "test",
-        },
-    }),
-});
-const docClient = lib_dynamodb_1.DynamoDBDocument.from(ddbClient, {
-    marshallOptions: { removeUndefinedValues: true },
-});
-const TABLE_NAME = process.env.CONDUCTORES_TABLE || "Conductores";
-const handler = async (event) => {
-    const { httpMethod, pathParameters, body } = event;
-    try {
-        switch (httpMethod) {
-            case "GET":
-                if (pathParameters?.id) {
-                    const result = await docClient.get({
-                        TableName: TABLE_NAME,
-                        Key: { id: pathParameters.id },
-                    });
-                    if (!result.Item) {
-                        return {
-                            statusCode: 404,
-                            body: JSON.stringify({ message: "Conductor no encontrado" }),
-                        };
-                    }
-                    return { statusCode: 200, body: JSON.stringify(result.Item) };
-                }
-                else {
-                    const result = await docClient.scan({ TableName: TABLE_NAME });
-                    return { statusCode: 200, body: JSON.stringify(result.Items) };
-                }
-            case "POST":
-                if (!body)
-                    return {
-                        statusCode: 400,
-                        body: JSON.stringify({
-                            message: "Falta el cuerpo de la solicitud",
-                        }),
-                    };
-                const data = JSON.parse(body);
-                if (!data.Usuario_ID)
-                    return {
-                        statusCode: 400,
-                        body: JSON.stringify({ message: "Usuario_ID es obligatorio" }),
-                    };
-                const newConductor = {
-                    id: (0, uuid_1.v4)(),
-                    Usuario_ID: data.Usuario_ID,
-                    Foto_DNI: data.Foto_DNI || null,
-                    Foto_VTV: data.Foto_VTV || null,
-                    Estado: data.Estado || "Pendiente",
-                    Vendedor_ID: data.Vendedor_ID || null,
-                };
-                await docClient.put({
-                    TableName: TABLE_NAME,
-                    Item: newConductor,
-                });
-                return { statusCode: 201, body: JSON.stringify(newConductor) };
-            case "PUT":
-                if (!pathParameters?.id)
-                    return {
-                        statusCode: 400,
-                        body: JSON.stringify({ message: "Falta el ID en la ruta" }),
-                    };
-                if (!body)
-                    return {
-                        statusCode: 400,
-                        body: JSON.stringify({
-                            message: "Falta el cuerpo de la solicitud",
-                        }),
-                    };
-                const updateData = JSON.parse(body);
-                const updateExpressions = Object.keys(updateData).map((key) => `#${key} = :${key}`);
-                const result = await docClient.update({
-                    TableName: TABLE_NAME,
-                    Key: { id: pathParameters.id },
-                    UpdateExpression: `SET ${updateExpressions.join(", ")}`,
-                    ExpressionAttributeNames: Object.keys(updateData).reduce((acc, key) => ({ ...acc, [`#${key}`]: key }), {}),
-                    ExpressionAttributeValues: Object.keys(updateData).reduce((acc, key) => ({ ...acc, [`:${key}`]: updateData[key] }), {}),
-                    ReturnValues: "ALL_NEW",
-                });
-                return { statusCode: 200, body: JSON.stringify(result.Attributes) };
-            case "DELETE":
-                if (!pathParameters?.id)
-                    return {
-                        statusCode: 400,
-                        body: JSON.stringify({ message: "Falta el ID en la ruta" }),
-                    };
-                await docClient.delete({
-                    TableName: TABLE_NAME,
-                    Key: { id: pathParameters.id },
-                });
-                return { statusCode: 204, body: "" };
-            default:
-                return {
-                    statusCode: 405,
-                    body: JSON.stringify({ message: "Método no permitido" }),
-                };
-        }
-    }
-    catch (error) {
-        console.error("Error:", error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({
-                message: "Error interno",
-                error: error.message,
-            }),
-        };
-    }
-};
-exports.handler = handler;
-
-/**********/
-
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/dist/handlers/rutas.js
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.handler = void 0;
-const client_dynamodb_1 = require("@aws-sdk/client-dynamodb");
-const lib_dynamodb_1 = require("@aws-sdk/lib-dynamodb");
-const uuid_1 = require("uuid");
-const isLocal = process.env.USE_LOCALSTACK === "true";
-const dynamoEndpoint = process.env.DYNAMODB_ENDPOINT || "http:
-const ddbClient = new client_dynamodb_1.DynamoDBClient({
-    region: "us-east-1",
-    ...(isLocal && {
-        endpoint: dynamoEndpoint,
-        credentials: {
-            accessKeyId: "test",
-            secretAccessKey: "test",
-        },
-    }),
-});
-const docClient = lib_dynamodb_1.DynamoDBDocument.from(ddbClient, {
-    marshallOptions: { removeUndefinedValues: true },
-});
-const TABLE_NAME = process.env.RUTAS_TABLE || "Routes";
-const handler = async (event) => {
-    const { httpMethod, pathParameters, body } = event;
-    try {
-        switch (httpMethod) {
-            case "GET":
-                if (pathParameters?.id) {
-                    const result = await docClient.get({
-                        TableName: TABLE_NAME,
-                        Key: { id: pathParameters.id },
-                    });
-                    return result.Item
-                        ? { statusCode: 200, body: JSON.stringify(result.Item) }
-                        : {
-                            statusCode: 404,
-                            body: JSON.stringify({ message: "Ruta no encontrada" }),
-                        };
-                }
-                else {
-                    const result = await docClient.scan({ TableName: TABLE_NAME });
-                    return { statusCode: 200, body: JSON.stringify(result.Items) };
-                }
-            case "POST":
-                if (!body)
-                    return {
-                        statusCode: 400,
-                        body: JSON.stringify({ message: "Cuerpo de solicitud faltante" }),
-                    };
-                const data = JSON.parse(body);
-                if (!data.conductorId || !data.paradasDeRuta) {
-                    return {
-                        statusCode: 400,
-                        body: JSON.stringify({
-                            message: "Faltan campos requeridos: conductorId y paradasDeRuta",
-                        }),
-                    };
-                }
-                for (const paradaDeRuta of data.paradasDeRuta) {
-                    if (!paradaDeRuta.parada ||
-                        !paradaDeRuta.parada.nombre ||
-                        !paradaDeRuta.parada.direccion ||
-                        typeof paradaDeRuta.posicion !== "number" ||
-                        !paradaDeRuta.horario) {
-                        return {
-                            statusCode: 400,
-                            body: JSON.stringify({
-                                message: "Estructura de paradasDeRuta inválida",
-                            }),
-                        };
-                    }
-                }
-                const newRuta = {
-                    id: (0, uuid_1.v4)(),
-                    conductorId: data.conductorId,
-                    estado: data.estado || "activa",
-                    paradasDeRuta: data.paradasDeRuta.map((p) => ({
-                        id: p.id || (0, uuid_1.v4)(),
-                        parada: {
-                            id: p.parada.id || (0, uuid_1.v4)(),
-                            nombre: p.parada.nombre,
-                            direccion: p.parada.direccion,
-                            descripcion: p.parada.descripcion || null,
-                        },
-                        posicion: p.posicion,
-                        horario: p.horario,
-                    })),
-                    createdAt: new Date().toISOString(),
-                };
-                await docClient.put({
-                    TableName: TABLE_NAME,
-                    Item: newRuta,
-                });
-                return { statusCode: 201, body: JSON.stringify(newRuta) };
-            case "PUT":
-                if (!pathParameters?.id || !body) {
-                    return {
-                        statusCode: 400,
-                        body: JSON.stringify({
-                            message: "ID o cuerpo de solicitud faltante",
-                        }),
-                    };
-                }
-                const updateData = JSON.parse(body);
-                if (updateData.paradasDeRuta) {
-                    updateData.paradasDeRuta = updateData.paradasDeRuta.map((p) => ({
-                        id: p.id || (0, uuid_1.v4)(),
-                        parada: {
-                            id: p.parada?.id || (0, uuid_1.v4)(),
-                            nombre: p.parada?.nombre,
-                            direccion: p.parada?.direccion,
-                            descripcion: p.parada?.descripcion || null,
-                        },
-                        posicion: p.posicion,
-                        horario: p.horario,
-                    }));
-                }
-                const updateExpressions = Object.keys(updateData)
-                    .map((key) => `#${key} = :${key}`)
-                    .join(", ");
-                const result = await docClient.update({
-                    TableName: TABLE_NAME,
-                    Key: { id: pathParameters.id },
-                    UpdateExpression: `SET ${updateExpressions}`,
-                    ExpressionAttributeNames: Object.keys(updateData).reduce((acc, key) => ({ ...acc, [`#${key}`]: key }), {}),
-                    ExpressionAttributeValues: Object.keys(updateData).reduce((acc, key) => ({ ...acc, [`:${key}`]: updateData[key] }), {}),
-                    ReturnValues: "ALL_NEW",
-                });
-                return { statusCode: 200, body: JSON.stringify(result.Attributes) };
-            case "DELETE":
-                if (!pathParameters?.id) {
-                    return {
-                        statusCode: 400,
-                        body: JSON.stringify({ message: "ID faltante" }),
-                    };
-                }
-                await docClient.delete({
-                    TableName: TABLE_NAME,
-                    Key: { id: pathParameters.id },
-                });
-                return { statusCode: 204, body: "" };
-            default:
-                return {
-                    statusCode: 405,
-                    body: JSON.stringify({ message: "Método no permitido" }),
-                };
-        }
-    }
-    catch (error) {
-        console.error("Error:", error);
-        return {
-            statusCode: 500,
-            body: JSON.stringify({
-                message: "Error interno",
-                error: error.message,
-            }),
-        };
-    }
-};
-exports.handler = handler;
-
-/**********/
-
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/dist/lib/dynamobd-stack.js
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DynamoDBStack = void 0;
-const cdk = require("aws-cdk-lib");
-const dynamodb = require("aws-cdk-lib/aws-dynamodb");
-class DynamoDBStack extends cdk.Stack {
-    constructor(scope, id, props) {
-        super(scope, id, props);
-        const usersTable = new dynamodb.Table(this, "UsersTable", {
-            tableName: "Users",
-            partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-        });
-        usersTable.addGlobalSecondaryIndex({
-            indexName: "UsersByRoleIndex",
-            partitionKey: { name: "role", type: dynamodb.AttributeType.STRING },
-        });
-        const driversTable = new dynamodb.Table(this, "DriversTable", {
-            tableName: "Drivers",
-            partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-        });
-        driversTable.addGlobalSecondaryIndex({
-            indexName: "DriverByUserIndex",
-            partitionKey: { name: "usuarioId", type: dynamodb.AttributeType.STRING },
-        });
-        driversTable.addGlobalSecondaryIndex({
-            indexName: "DriversByVendorIndex",
-            partitionKey: { name: "vendedorId", type: dynamodb.AttributeType.STRING },
-        });
-        const vendorsTable = new dynamodb.Table(this, "VendorsTable", {
-            tableName: "Vendors",
-            partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-        });
-        vendorsTable.addGlobalSecondaryIndex({
-            indexName: "VendorByUserIndex",
-            partitionKey: { name: "usuarioId", type: dynamodb.AttributeType.STRING },
-        });
-        const routesTable = new dynamodb.Table(this, "RoutesTable", {
-            tableName: "Routes",
-            partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-        });
-        routesTable.addGlobalSecondaryIndex({
-            indexName: "RoutesByConductorIndex",
-            partitionKey: {
-                name: "conductorId",
-                type: dynamodb.AttributeType.STRING,
-            },
-        });
-        const tripsTable = new dynamodb.Table(this, "TripsTable", {
-            tableName: "Trips",
-            partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-        });
-        tripsTable.addGlobalSecondaryIndex({
-            indexName: "TripsByRutaIndex",
-            partitionKey: { name: "rutaId", type: dynamodb.AttributeType.STRING },
-        });
-        tripsTable.addGlobalSecondaryIndex({
-            indexName: "TripsByConductorIndex",
-            partitionKey: {
-                name: "conductorId",
-                type: dynamodb.AttributeType.STRING,
-            },
-        });
-        const commissionsTable = new dynamodb.Table(this, "CommissionsTable", {
-            tableName: "Commissions",
-            partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-        });
-        commissionsTable.addGlobalSecondaryIndex({
-            indexName: "CommissionsByVendorIndex",
-            partitionKey: { name: "vendedorId", type: dynamodb.AttributeType.STRING },
-        });
-        commissionsTable.addGlobalSecondaryIndex({
-            indexName: "CommissionsByConductorIndex",
-            partitionKey: {
-                name: "conductorId",
-                type: dynamodb.AttributeType.STRING,
-            },
-        });
-        new cdk.CfnOutput(this, "UsersTableArn", { value: usersTable.tableArn });
-        new cdk.CfnOutput(this, "DriversTableArn", {
-            value: driversTable.tableArn,
-        });
-        new cdk.CfnOutput(this, "VendorsTableArn", {
-            value: vendorsTable.tableArn,
-        });
-        new cdk.CfnOutput(this, "RoutesTableArn", { value: routesTable.tableArn });
-        new cdk.CfnOutput(this, "TripsTableArn", { value: tripsTable.tableArn });
-        new cdk.CfnOutput(this, "CommissionsTableArn", {
-            value: commissionsTable.tableArn,
-        });
-    }
-}
-exports.DynamoDBStack = DynamoDBStack;
-
-/**********/
-
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/dist/lib/dynamodb-construct.js
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.DynamoDBConstruct = void 0;
-const constructs_1 = require("constructs");
-const dynamodb = require("aws-cdk-lib/aws-dynamodb");
-class DynamoDBConstruct extends constructs_1.Construct {
-    constructor(scope, id) {
-        super(scope, id);
-        this.usersTable = new dynamodb.Table(this, "UsersTable", {
-            tableName: "Users",
-            partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-        });
-        this.usersTable.addGlobalSecondaryIndex({
-            indexName: "UsersByRoleIndex",
-            partitionKey: { name: "role", type: dynamodb.AttributeType.STRING },
-        });
-        this.driversTable = new dynamodb.Table(this, "DriversTable", {
-            tableName: "Drivers",
-            partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-        });
-        this.driversTable.addGlobalSecondaryIndex({
-            indexName: "DriverByUserIndex",
-            partitionKey: { name: "usuarioId", type: dynamodb.AttributeType.STRING },
-        });
-        this.driversTable.addGlobalSecondaryIndex({
-            indexName: "DriversByVendorIndex",
-            partitionKey: { name: "vendedorId", type: dynamodb.AttributeType.STRING },
-        });
-        this.routesTable = new dynamodb.Table(this, "RoutesTable", {
-            tableName: "Routes",
-            partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-        });
-        this.routesTable.addGlobalSecondaryIndex({
-            indexName: "RoutesByConductorIndex",
-            partitionKey: {
-                name: "conductorId",
-                type: dynamodb.AttributeType.STRING,
-            },
-        });
-        this.paradasTable = new dynamodb.Table(this, "ParadasTable", {
-            tableName: "Paradas",
-            partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-        });
-        this.paradasTable.addGlobalSecondaryIndex({
-            indexName: "ParadasByRutaIndex",
-            partitionKey: { name: "direccion", type: dynamodb.AttributeType.STRING },
-        });
-        this.paradasDeRutaTable = new dynamodb.Table(this, "ParadasDeRutaTable", {
-            tableName: "ParadasDeRuta",
-            partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-            billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-        });
-    }
-}
-exports.DynamoDBConstruct = DynamoDBConstruct;
-
-/**********/
-
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/dist/lib/handlers-construct.js
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.HandlersConstruct = void 0;
-const constructs_1 = require("constructs");
-const lambda = require("aws-cdk-lib/aws-lambda");
-const lambdaNode = require("aws-cdk-lib/aws-lambda-nodejs");
-const path = require("path");
-class HandlersConstruct extends constructs_1.Construct {
-    constructor(scope, id, props) {
-        super(scope, id);
-        this.conductoresHandler = new lambdaNode.NodejsFunction(this, "ConductoresHandler", {
-            runtime: lambda.Runtime.NODEJS_18_X,
-            entry: path.join(__dirname, "../handlers/conductores.ts"),
-            handler: "handler",
-            environment: {
-                USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
-                CONDUCTORES_TABLE: props.driversTable.tableName,
-            },
-            bundling: { externalModules: ["@aws-sdk"] },
-        });
-        this.rutasHandler = new lambdaNode.NodejsFunction(this, "RutasHandler", {
-            runtime: lambda.Runtime.NODEJS_18_X,
-            entry: path.join(__dirname, "../handlers/rutas.ts"),
-            handler: "handler",
-            environment: {
-                USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
-                RUTAS_TABLE: props.routesTable.tableName,
-            },
-            bundling: { externalModules: ["@aws-sdk"] },
-        });
-        this.paradasHandler = new lambdaNode.NodejsFunction(this, "ParadasHandler", {
-            runtime: lambda.Runtime.NODEJS_18_X,
-            entry: path.join(__dirname, "../handlers/paradas.ts"),
-            handler: "handler",
-            environment: {
-                USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
-                PARADAS_TABLE: props.paradasTable.tableName,
-            },
-            bundling: { externalModules: ["@aws-sdk"] },
-        });
-        this.paradasDeRutaHandler = new lambdaNode.NodejsFunction(this, "ParadasDeRutaHandler", {
-            runtime: lambda.Runtime.NODEJS_18_X,
-            entry: path.join(__dirname, "../handlers/paradasDeRuta.ts"),
-            handler: "handler",
-            environment: {
-                USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
-                PARADAS_TABLE: props.paradasDeRutaTable.tableName,
-            },
-            bundling: { externalModules: ["@aws-sdk"] },
-        });
-        props.driversTable.grantReadWriteData(this.conductoresHandler);
-        props.routesTable.grantReadWriteData(this.rutasHandler);
-        props.paradasTable.grantReadWriteData(this.paradasHandler);
-        props.paradasDeRutaTable.grantReadWriteData(this.paradasDeRutaHandler);
-    }
-}
-exports.HandlersConstruct = HandlersConstruct;
-
-/**********/
-
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/dist/lib/minibus-backend-aws-cdk-stack.js
-"use strict";
-Object.defineProperty(exports, "__esModule", { value: true });
-exports.MinibusBackendAwsCdkStack = void 0;
-const cdk = require("aws-cdk-lib");
-const dynamodb_construct_1 = require("./dynamodb-construct");
-const handlers_construct_1 = require("./handlers-construct");
-const apigateway = require("aws-cdk-lib/aws-apigateway");
-class MinibusBackendAwsCdkStack extends cdk.Stack {
-    constructor(scope, id, props) {
-        super(scope, id, props);
-        console.log("LOCALSTACK:", process.env.USE_LOCALSTACK);
-        const database = new dynamodb_construct_1.DynamoDBConstruct(this, "Database");
-        const handlers = new handlers_construct_1.HandlersConstruct(this, "Handlers", {
-            driversTable: database.driversTable,
-            routesTable: database.routesTable,
-            paradasTable: database.paradasTable,
-            paradasDeRutaTable: database.paradasDeRutaTable,
-        });
-        const api = new apigateway.RestApi(this, "MinibusApi", {
-            restApiName: "minibus-api",
-            deployOptions: {
-                stageName: process.env.USE_LOCALSTACK ? "dev" : "prod",
-            },
-            endpointConfiguration: {
-                types: [apigateway.EndpointType.REGIONAL],
-            },
-        });
-        const conductoresResource = api.root.addResource("conductores");
-        conductoresResource.addMethod("GET", new apigateway.LambdaIntegration(handlers.conductoresHandler));
-        conductoresResource.addMethod("POST", new apigateway.LambdaIntegration(handlers.conductoresHandler));
-        const conductorResource = conductoresResource.addResource("{id}");
-        conductorResource.addMethod("GET", new apigateway.LambdaIntegration(handlers.conductoresHandler));
-        conductorResource.addMethod("PUT", new apigateway.LambdaIntegration(handlers.conductoresHandler));
-        conductorResource.addMethod("DELETE", new apigateway.LambdaIntegration(handlers.conductoresHandler));
-        new cdk.CfnOutput(this, "ApiUrl", {
-            value: api.urlForPath("/conductores"),
-            description: "Endpoint de conductores",
-        });
-        const rutasResource = api.root.addResource("rutas");
-        rutasResource.addMethod("GET", new apigateway.LambdaIntegration(handlers.rutasHandler));
-        rutasResource.addMethod("POST", new apigateway.LambdaIntegration(handlers.rutasHandler));
-        const rutaResource = rutasResource.addResource("{id}");
-        rutaResource.addMethod("GET", new apigateway.LambdaIntegration(handlers.rutasHandler));
-        rutaResource.addMethod("PUT", new apigateway.LambdaIntegration(handlers.rutasHandler));
-        rutaResource.addMethod("DELETE", new apigateway.LambdaIntegration(handlers.rutasHandler));
-        const paradasResource = api.root.addResource("paradas");
-        paradasResource.addMethod("GET", new apigateway.LambdaIntegration(handlers.paradasHandler));
-        paradasResource.addMethod("POST", new apigateway.LambdaIntegration(handlers.paradasHandler));
-        const paradaResource = paradasResource.addResource("{id}");
-        paradaResource.addMethod("GET", new apigateway.LambdaIntegration(handlers.paradasHandler));
-        paradaResource.addMethod("PUT", new apigateway.LambdaIntegration(handlers.paradasHandler));
-        paradaResource.addMethod("DELETE", new apigateway.LambdaIntegration(handlers.paradasHandler));
-        const paradasDeRutaResource = api.root.addResource("paradasDeRuta");
-        paradasDeRutaResource.addMethod("GET", new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler));
-        paradasDeRutaResource.addMethod("POST", new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler));
-        const paradaDeRutaResource = paradasDeRutaResource.addResource("{id}");
-        paradaDeRutaResource.addMethod("GET", new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler));
-        paradaDeRutaResource.addMethod("PUT", new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler));
-        paradaDeRutaResource.addMethod("DELETE", new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler));
-    }
-}
-exports.MinibusBackendAwsCdkStack = MinibusBackendAwsCdkStack;
-
-/**********/
-
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/handlers/conductores.ts
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/handlers/conductores.ts
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import {
   createConductor,
@@ -786,7 +188,7 @@ export const handler = async (
 
 /**********/
 
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/handlers/rutas.ts
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/handlers/rutas.ts
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import {
   createRuta,
@@ -876,7 +278,92 @@ export const handler = async (
 
 /**********/
 
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/lib/dynamobd-stack.ts
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/handlers/viajes.ts
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import {
+  createViaje,
+  getViaje,
+  updateViaje,
+  deleteViaje,
+  listViajes,
+} from "../models/viajeModel";
+export const handler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+  const { httpMethod, pathParameters, body } = event;
+  try {
+    switch (httpMethod) {
+      case "GET":
+        if (pathParameters?.id) {
+          const viaje = await getViaje(pathParameters.id);
+          return viaje
+            ? { statusCode: 200, body: JSON.stringify(viaje) }
+            : {
+                statusCode: 404,
+                body: JSON.stringify({ message: "Viaje no encontrado" }),
+              };
+        } else {
+          const viajes = await listViajes();
+          return { statusCode: 200, body: JSON.stringify(viajes) };
+        }
+      case "POST":
+        if (!body)
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ message: "Cuerpo de solicitud faltante" }),
+          };
+        const data = JSON.parse(body);
+        if (!data.rutaId || !data.conductorId) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({
+              message: "rutaId y conductorId son requeridos",
+            }),
+          };
+        }
+        const newViaje = await createViaje({
+          ...data,
+          estado: data.estado || "Pendiente",
+          createdAt: new Date().toISOString(),
+        });
+        return { statusCode: 201, body: JSON.stringify(newViaje) };
+      case "PUT":
+        if (!pathParameters?.id || !body) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ message: "ID o cuerpo faltante" }),
+          };
+        }
+        const updateData = JSON.parse(body);
+        const updatedViaje = await updateViaje(pathParameters.id, updateData);
+        return { statusCode: 200, body: JSON.stringify(updatedViaje) };
+      case "DELETE":
+        if (!pathParameters?.id) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ message: "ID faltante" }),
+          };
+        }
+        await deleteViaje(pathParameters.id);
+        return { statusCode: 204, body: "" };
+      default:
+        return {
+          statusCode: 405,
+          body: JSON.stringify({ message: "Método no permitido" }),
+        };
+    }
+  } catch (error: any) {
+    console.error("Error:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Error interno", error: error.message }),
+    };
+  }
+};
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/lib/dynamobd-stack.ts
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
@@ -975,7 +462,7 @@ export class DynamoDBStack extends cdk.Stack {
 
 /**********/
 
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/lib/dynamodb-construct.ts
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/lib/dynamodb-construct.ts
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
@@ -984,10 +471,10 @@ export class DynamoDBConstruct extends Construct {
   public readonly driversTable: dynamodb.Table;
   public readonly vendorsTable: dynamodb.Table;
   public readonly routesTable: dynamodb.Table;
-  public readonly tripsTable: dynamodb.Table;
   public readonly commissionsTable: dynamodb.Table;
   public readonly paradasTable: dynamodb.Table; 
   public readonly paradasDeRutaTable: dynamodb.Table; 
+  public readonly viajesTable: dynamodb.Table; 
   constructor(scope: Construct, id: string) {
     super(scope, id);
     this.usersTable = new dynamodb.Table(this, "UsersTable", {
@@ -1038,12 +525,28 @@ export class DynamoDBConstruct extends Construct {
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
     });
+    this.viajesTable = new dynamodb.Table(this, "ViajesTable", {
+      tableName: "Viajes",
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+    this.viajesTable.addGlobalSecondaryIndex({
+      indexName: "ViajesByRutaIndex",
+      partitionKey: { name: "rutaId", type: dynamodb.AttributeType.STRING },
+    });
+    this.viajesTable.addGlobalSecondaryIndex({
+      indexName: "ViajesByConductorIndex",
+      partitionKey: {
+        name: "conductorId",
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
   }
 }
 
 /**********/
 
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/lib/handlers-construct.ts
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/lib/handlers-construct.ts
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -1055,12 +558,14 @@ interface HandlersConstructProps {
   routesTable: dynamodb.Table;
   paradasTable: dynamodb.Table;
   paradasDeRutaTable: dynamodb.Table;
+  viajesTable: dynamodb.Table;
 }
 export class HandlersConstruct extends Construct {
   public readonly conductoresHandler: lambdaNode.NodejsFunction;
   public readonly rutasHandler: lambdaNode.NodejsFunction;
   public readonly paradasHandler: lambdaNode.NodejsFunction;
   public readonly paradasDeRutaHandler: lambdaNode.NodejsFunction;
+  public readonly viajesHandler: lambdaNode.NodejsFunction;
   constructor(scope: Construct, id: string, props: HandlersConstructProps) {
     super(scope, id);
     this.conductoresHandler = new lambdaNode.NodejsFunction(
@@ -1115,6 +620,17 @@ export class HandlersConstruct extends Construct {
         bundling: { externalModules: ["@aws-sdk"] },
       }
     );
+    this.viajesHandler = new lambdaNode.NodejsFunction(this, "ViajesHandler", {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, "../handlers/viajes.ts"),
+      handler: "handler",
+      environment: {
+        USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
+        TRIPS_TABLE: props.viajesTable.tableName,
+      },
+      bundling: { externalModules: ["@aws-sdk"] },
+    });
+    props.viajesTable.grantReadWriteData(this.viajesHandler);
     props.driversTable.grantReadWriteData(this.conductoresHandler);
     props.routesTable.grantReadWriteData(this.rutasHandler);
     props.paradasTable.grantReadWriteData(this.paradasHandler);
@@ -1124,7 +640,7 @@ export class HandlersConstruct extends Construct {
 
 /**********/
 
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/lib/minibus-backend-aws-cdk-stack.ts
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/lib/minibus-backend-aws-cdk-stack.ts
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
 import { DynamoDBConstruct } from "./dynamodb-construct";
@@ -1140,6 +656,7 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
       routesTable: database.routesTable,
       paradasTable: database.paradasTable,
       paradasDeRutaTable: database.paradasDeRutaTable,
+      viajesTable: database.viajesTable,
     });
     const api = new apigateway.RestApi(this, "MinibusApi", {
       restApiName: "minibus-api",
@@ -1242,12 +759,34 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
       "DELETE",
       new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler)
     );
+    const viajesResource = api.root.addResource("viajes");
+    viajesResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.viajesHandler)
+    );
+    viajesResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.viajesHandler)
+    );
+    const viajeResource = viajesResource.addResource("{id}");
+    viajeResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.viajesHandler)
+    );
+    viajeResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(handlers.viajesHandler)
+    );
+    viajeResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(handlers.viajesHandler)
+    );
   }
 }
 
 /**********/
 
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/models/conductorModel.ts
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/conductorModel.ts
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
 import {
@@ -1346,7 +885,7 @@ export const listConductores = async (): Promise<Conductor[]> => {
 
 /**********/
 
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/models/rutaModel.ts
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/rutaModel.ts
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
 import {
@@ -1443,11 +982,18 @@ export const listRutas = async (): Promise<Ruta[]> => {
 
 /**********/
 
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/models/viajeModel.ts
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/viajeModel.ts
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { PutCommand, GetCommand, DeleteCommand } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
 import { Viaje } from "../types/viaje";
-const TABLE_NAME = "Viajes";
+import { v4 as uuidv4 } from "uuid"; 
 const isLocal = process.env.USE_LOCALSTACK === "true";
 const dynamoEndpoint =
   process.env.DYNAMODB_ENDPOINT || "http:
@@ -1461,28 +1007,76 @@ const ddbClient = new DynamoDBClient({
     },
   }),
 });
-export const saveViaje = async (viaje: Viaje) => {
-  const command = new PutCommand({
-    TableName: TABLE_NAME,
-    Item: viaje,
-  });
-  await ddbClient.send(command);
-  return viaje;
+const docClient = DynamoDBDocument.from(ddbClient, {
+  marshallOptions: { removeUndefinedValues: true },
+});
+const TABLE_NAME = process.env.TRIPS_TABLE || "Trips";
+export const createViaje = async (
+  viajeData: Omit<Viaje, "id">
+): Promise<Viaje> => {
+  const newViaje: Viaje = {
+    id: uuidv4(),
+    ...viajeData,
+  };
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: newViaje,
+    })
+  );
+  return newViaje;
 };
-export const getViaje = async (id: string) => {
-  const command = new GetCommand({
-    TableName: TABLE_NAME,
-    Key: { id },
-  });
-  const response = await ddbClient.send(command);
-  return response.Item as Viaje | undefined;
+export const getViaje = async (id: string): Promise<Viaje | null> => {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+  return (result.Item as Viaje) || null;
 };
-export const deleteViaje = async (id: string) => {
-  const command = new DeleteCommand({
-    TableName: TABLE_NAME,
-    Key: { id },
-  });
-  await ddbClient.send(command);
+export const updateViaje = async (
+  id: string,
+  updateData: Partial<Viaje>
+): Promise<Viaje> => {
+  const updateExpressions = Object.keys(updateData).map(
+    (key) => `#${key} = :${key}`
+  );
+  const ExpressionAttributeNames = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`#${key}`]: key }),
+    {}
+  );
+  const ExpressionAttributeValues = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`:${key}`]: updateData[key as keyof Viaje] }),
+    {}
+  );
+  const { Attributes } = await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    })
+  );
+  return Attributes as Viaje;
+};
+export const deleteViaje = async (id: string): Promise<void> => {
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+};
+export const listViajes = async (): Promise<Viaje[]> => {
+  const result = await docClient.send(
+    new ScanCommand({
+      TableName: TABLE_NAME,
+    })
+  );
+  return result.Items as Viaje[];
 };
 
 /**********/

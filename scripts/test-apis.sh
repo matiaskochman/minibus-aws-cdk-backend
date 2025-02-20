@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Definir la URL base de la API
-API_URL="https://r2gog4winw.execute-api.localhost.localstack.cloud:4566/dev/"
+API_URL="https://mg3hbqzhkk.execute-api.localhost.localstack.cloud:4566/dev/"
 
 # Función para probar conductores
 test_conductores() {
@@ -279,10 +279,10 @@ then
 fi
 
 # Ejecutar todas las pruebas
-# test_conductores
-# test_rutas
-# test_paradas
-# test_paradas_de_ruta
-# agregar_parada_a_ruta
-# eliminar_parada_de_ruta
+test_conductores
+test_rutas
+test_paradas
+test_paradas_de_ruta
+agregar_parada_a_ruta
+eliminar_parada_de_ruta
 test_viajes
