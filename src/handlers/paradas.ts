@@ -1,4 +1,3 @@
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/handlers/paradas.ts
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import {
   createParada,
@@ -40,16 +39,20 @@ export const handler = async (
         }
         const data = JSON.parse(body);
         if (
-          !data.rutaId ||
           !data.nombre ||
-          !data.direccion ||
-          data.orden === undefined
+          !data.descripcion ||
+          !data.calle ||
+          !data.numero ||
+          !data.localidad ||
+          !data.codigoPostal ||
+          !data.partido ||
+          !data.provincia
         ) {
           return {
             statusCode: 400,
             body: JSON.stringify({
               message:
-                "Faltan campos requeridos: rutaId, nombre, direccion, orden",
+                "Faltan campos requeridos: nombre, descripcion, calle, numero, localidad, codigoPostal, partido, provincia",
             }),
           };
         }

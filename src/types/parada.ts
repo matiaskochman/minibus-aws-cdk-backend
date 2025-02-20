@@ -2,9 +2,13 @@
 export interface Parada {
   id: string;
   nombre: string;
-  direccion: string;
   descripcion: string;
+  calle: string;
+  numero: string;
+  localidad: string;
+  codigoPostal: string;
+  partido: string;
+  provincia: string;
   latitud?: number;
   longitud?: number;
-  // Puedes agregar más propiedades según lo requieras
 }
