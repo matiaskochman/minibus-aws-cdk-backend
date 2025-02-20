@@ -1,134 +1,77 @@
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/handlers/conductores.ts
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
-import { v4 as uuidv4 } from "uuid";
-import { Conductor } from "../types/conductor";
-
-const isLocal = process.env.USE_LOCALSTACK === "true";
-
-const ddbClient = new DynamoDBClient({
-  region: "us-east-1",
-  ...(isLocal && {
-    endpoint: "http://localstack:4566",
-    credentials: {
-      accessKeyId: "test",
-      secretAccessKey: "test",
-    },
-  }),
-});
-
-const docClient = DynamoDBDocument.from(ddbClient, {
-  marshallOptions: { removeUndefinedValues: true },
-});
-
-const TABLE_NAME = process.env.CONDUCTORES_TABLE || "Conductores";
+import {
+  createConductor,
+  getConductor,
+  updateConductor,
+  deleteConductor,
+  listConductores,
+} from "../models/conductorModel";
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const { httpMethod, pathParameters, body } = event;
-
   try {
     switch (httpMethod) {
       case "GET":
         if (pathParameters?.id) {
-          const result = await docClient.get({
-            TableName: TABLE_NAME,
-            Key: { id: pathParameters.id },
-          });
-
-          if (!result.Item) {
+          const conductor = await getConductor(pathParameters.id);
+          if (!conductor) {
             return {
               statusCode: 404,
               body: JSON.stringify({ message: "Conductor no encontrado" }),
             };
           }
-          return { statusCode: 200, body: JSON.stringify(result.Item) };
+          return { statusCode: 200, body: JSON.stringify(conductor) };
         } else {
-          const result = await docClient.scan({ TableName: TABLE_NAME });
-          return { statusCode: 200, body: JSON.stringify(result.Items) };
+          const conductores = await listConductores();
+          return { statusCode: 200, body: JSON.stringify(conductores) };
         }
 
       case "POST":
-        if (!body)
+        if (!body) {
           return {
             statusCode: 400,
             body: JSON.stringify({
               message: "Falta el cuerpo de la solicitud",
             }),
           };
-
+        }
         const data = JSON.parse(body);
-        if (!data.Usuario_ID)
+        if (!data.Usuario_ID) {
           return {
             statusCode: 400,
             body: JSON.stringify({ message: "Usuario_ID es obligatorio" }),
           };
-
-        const newConductor: Conductor = {
-          id: uuidv4(),
-          Usuario_ID: data.Usuario_ID,
-          Foto_DNI: data.Foto_DNI || null,
-          Foto_VTV: data.Foto_VTV || null,
-          Estado: data.Estado || "Pendiente",
-          Vendedor_ID: data.Vendedor_ID || null,
-        };
-
-        await docClient.put({
-          TableName: TABLE_NAME,
-          Item: newConductor,
-        });
-
+        }
+        const newConductor = await createConductor(data);
         return { statusCode: 201, body: JSON.stringify(newConductor) };
 
       case "PUT":
-        if (!pathParameters?.id)
-          return {
-            statusCode: 400,
-            body: JSON.stringify({ message: "Falta el ID en la ruta" }),
-          };
-        if (!body)
+        if (!pathParameters?.id || !body) {
           return {
             statusCode: 400,
             body: JSON.stringify({
-              message: "Falta el cuerpo de la solicitud",
+              message: "Falta el ID o el cuerpo de la solicitud",
             }),
           };
-
+        }
         const updateData = JSON.parse(body);
-        const updateExpressions = Object.keys(updateData).map(
-          (key) => `#${key} = :${key}`
+        const updatedConductor = await updateConductor(
+          pathParameters.id,
+          updateData
         );
-
-        const result = await docClient.update({
-          TableName: TABLE_NAME,
-          Key: { id: pathParameters.id },
-          UpdateExpression: `SET ${updateExpressions.join(", ")}`,
-          ExpressionAttributeNames: Object.keys(updateData).reduce(
-            (acc, key) => ({ ...acc, [`#${key}`]: key }),
-            {}
-          ),
-          ExpressionAttributeValues: Object.keys(updateData).reduce(
-            (acc, key) => ({ ...acc, [`:${key}`]: updateData[key] }),
-            {}
-          ),
-          ReturnValues: "ALL_NEW",
-        });
-
-        return { statusCode: 200, body: JSON.stringify(result.Attributes) };
+        return { statusCode: 200, body: JSON.stringify(updatedConductor) };
 
       case "DELETE":
-        if (!pathParameters?.id)
+        if (!pathParameters?.id) {
           return {
             statusCode: 400,
             body: JSON.stringify({ message: "Falta el ID en la ruta" }),
           };
-
-        await docClient.delete({
-          TableName: TABLE_NAME,
-          Key: { id: pathParameters.id },
-        });
-
+        }
+        await deleteConductor(pathParameters.id);
         return { statusCode: 204, body: "" };
 
       default:
@@ -137,14 +80,11 @@ export const handler = async (
           body: JSON.stringify({ message: "Método no permitido" }),
         };
     }
-  } catch (error) {
+  } catch (error: any) {
     console.error("Error:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        message: "Error interno",
-        error: (error as Error).message,
-      }),
+      body: JSON.stringify({ message: "Error interno", error: error.message }),
     };
   }
 };

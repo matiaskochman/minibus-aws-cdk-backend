@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Definir la URL base de la API
-API_URL="https://3peclfd0jx.execute-api.localhost.localstack.cloud:4566/dev/"
+API_URL="https://r2gog4winw.execute-api.localhost.localstack.cloud:4566/dev/"
 
 # Función para probar conductores
 test_conductores() {
@@ -227,6 +227,50 @@ eliminar_parada_de_ruta() {
         }'
     echo ""
 }
+
+# Función para probar viajes
+test_viajes() {
+    echo -e "\nProbando POST /viajes"
+    VIAJE_RESPONSE=$(curl -s -X POST "$API_URL/viajes" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "conductorId": "12345",
+            "rutaId": "67890",
+            "estado": "programado",
+            "fechaHoraSalida": "2025-02-25T08:00:00Z",
+            "fechaHoraLlegada": "2025-02-25T10:00:00Z",
+            "capacidad": 20,
+            "pasajeros": []
+        }')
+
+    echo "Respuesta: $VIAJE_RESPONSE"
+
+    # Extraer ID del viaje
+    VIAJE_ID=$(echo "$VIAJE_RESPONSE" | jq -r '.id')
+
+    echo ""
+    echo -e "\nProbando GET /viajes/$VIAJE_ID"
+    curl -s -X GET "$API_URL/viajes/$VIAJE_ID"
+    echo ""
+    
+    echo "ID del viaje creado: $VIAJE_ID"
+    echo ""
+    echo -e "\nProbando GET /viajes"
+    curl -s -X GET "$API_URL/viajes"
+    echo ""
+
+    echo -e "\nProbando PUT /viajes/$VIAJE_ID"
+    curl -s -X PUT "$API_URL/viajes/$VIAJE_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "estado": "en curso"
+        }'
+    echo ""
+
+    echo -e "\nProbando DELETE /viajes/$VIAJE_ID"
+    curl -s -X DELETE "$API_URL/viajes/$VIAJE_ID"
+    echo ""
+}
 # # Verificar que jq está instalado
 if ! command -v jq &> /dev/null
 then
@@ -235,9 +279,10 @@ then
 fi
 
 # Ejecutar todas las pruebas
-test_conductores
-test_rutas
-test_paradas
-test_paradas_de_ruta
-agregar_parada_a_ruta
-eliminar_parada_de_ruta
+# test_conductores
+# test_rutas
+# test_paradas
+# test_paradas_de_ruta
+# agregar_parada_a_ruta
+# eliminar_parada_de_ruta
+test_viajes

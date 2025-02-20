@@ -1,29 +1,12 @@
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/handlers/paradasDeRuta.ts
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
-import { v4 as uuidv4 } from "uuid";
-import { ParadaDeRuta } from "../types/paradaDeRuta";
-
-const isLocal = process.env.USE_LOCALSTACK === "true";
-const dynamoEndpoint =
-  process.env.DYNAMODB_ENDPOINT || "http://localstack:4566";
-
-const ddbClient = new DynamoDBClient({
-  region: "us-east-1",
-  ...(isLocal && {
-    endpoint: dynamoEndpoint,
-    credentials: {
-      accessKeyId: "test",
-      secretAccessKey: "test",
-    },
-  }),
-});
-
-const docClient = DynamoDBDocument.from(ddbClient, {
-  marshallOptions: { removeUndefinedValues: true },
-});
-
-const TABLE_NAME = process.env.PARADASDE_RUTA_TABLE || "ParadasDeRuta";
+import {
+  createParadaDeRuta,
+  getParadaDeRuta,
+  updateParadaDeRuta,
+  deleteParadaDeRuta,
+  listParadasDeRuta,
+} from "../models/paradaDeRuta";
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -33,28 +16,17 @@ export const handler = async (
     switch (httpMethod) {
       case "GET":
         if (pathParameters?.id) {
-          // Obtener una ParadaDeRuta específica
-          const result = await docClient.get({
-            TableName: TABLE_NAME,
-            Key: { id: pathParameters.id },
-          });
-          if (!result.Item) {
+          const paradaDeRuta = await getParadaDeRuta(pathParameters.id);
+          if (!paradaDeRuta) {
             return {
               statusCode: 404,
               body: JSON.stringify({ message: "Parada de ruta no encontrada" }),
             };
           }
-          return {
-            statusCode: 200,
-            body: JSON.stringify(result.Item),
-          };
+          return { statusCode: 200, body: JSON.stringify(paradaDeRuta) };
         } else {
-          // Obtener todas las ParadasDeRuta
-          const result = await docClient.scan({ TableName: TABLE_NAME });
-          return {
-            statusCode: 200,
-            body: JSON.stringify(result.Items),
-          };
+          const paradasDeRuta = await listParadasDeRuta();
+          return { statusCode: 200, body: JSON.stringify(paradasDeRuta) };
         }
 
       case "POST":
@@ -67,7 +39,6 @@ export const handler = async (
           };
         }
         const data = JSON.parse(body);
-        // Validación de campos requeridos
         if (!data.parada || data.posicion === undefined || !data.horario) {
           return {
             statusCode: 400,
@@ -76,58 +47,24 @@ export const handler = async (
             }),
           };
         }
-        const newParadaDeRuta: ParadaDeRuta = {
-          id: uuidv4(),
-          parada: data.parada,
-          posicion: data.posicion,
-          horario: data.horario,
-        };
-        await docClient.put({
-          TableName: TABLE_NAME,
-          Item: newParadaDeRuta,
-        });
-        return {
-          statusCode: 201,
-          body: JSON.stringify(newParadaDeRuta),
-        };
+        const newParadaDeRuta = await createParadaDeRuta(data);
+        return { statusCode: 201, body: JSON.stringify(newParadaDeRuta) };
 
       case "PUT":
-        if (!pathParameters?.id) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({ message: "Falta el ID en la ruta" }),
-          };
-        }
-        if (!body) {
+        if (!pathParameters?.id || !body) {
           return {
             statusCode: 400,
             body: JSON.stringify({
-              message: "Falta el cuerpo de la solicitud",
+              message: "Falta el ID o el cuerpo de la solicitud",
             }),
           };
         }
         const updateData = JSON.parse(body);
-        const updateExpressions = Object.keys(updateData).map(
-          (key) => `#${key} = :${key}`
+        const updatedParadaDeRuta = await updateParadaDeRuta(
+          pathParameters.id,
+          updateData
         );
-        const updateResult = await docClient.update({
-          TableName: TABLE_NAME,
-          Key: { id: pathParameters.id },
-          UpdateExpression: `SET ${updateExpressions.join(", ")}`,
-          ExpressionAttributeNames: Object.keys(updateData).reduce(
-            (acc, key) => ({ ...acc, [`#${key}`]: key }),
-            {}
-          ),
-          ExpressionAttributeValues: Object.keys(updateData).reduce(
-            (acc, key) => ({ ...acc, [`:${key}`]: updateData[key] }),
-            {}
-          ),
-          ReturnValues: "ALL_NEW",
-        });
-        return {
-          statusCode: 200,
-          body: JSON.stringify(updateResult.Attributes),
-        };
+        return { statusCode: 200, body: JSON.stringify(updatedParadaDeRuta) };
 
       case "DELETE":
         if (!pathParameters?.id) {
@@ -136,14 +73,8 @@ export const handler = async (
             body: JSON.stringify({ message: "Falta el ID en la ruta" }),
           };
         }
-        await docClient.delete({
-          TableName: TABLE_NAME,
-          Key: { id: pathParameters.id },
-        });
-        return {
-          statusCode: 204,
-          body: "",
-        };
+        await deleteParadaDeRuta(pathParameters.id);
+        return { statusCode: 204, body: "" };
 
       default:
         return {
@@ -155,10 +86,7 @@ export const handler = async (
     console.error("Error:", error);
     return {
       statusCode: 500,
-      body: JSON.stringify({
-        message: "Error interno",
-        error: error.message,
-      }),
+      body: JSON.stringify({ message: "Error interno", error: error.message }),
     };
   }
 };

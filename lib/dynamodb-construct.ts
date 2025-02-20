@@ -7,10 +7,11 @@ export class DynamoDBConstruct extends Construct {
   public readonly driversTable: dynamodb.Table;
   public readonly vendorsTable: dynamodb.Table;
   public readonly routesTable: dynamodb.Table;
-  public readonly tripsTable: dynamodb.Table;
+
   public readonly commissionsTable: dynamodb.Table;
   public readonly paradasTable: dynamodb.Table; // Nueva tabla
   public readonly paradasDeRutaTable: dynamodb.Table; // Nueva tabla
+  public readonly viajesTable: dynamodb.Table; // Nueva tabla
 
   constructor(scope: Construct, id: string) {
     super(scope, id);
@@ -72,6 +73,26 @@ export class DynamoDBConstruct extends Construct {
       tableName: "ParadasDeRuta",
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+
+    this.viajesTable = new dynamodb.Table(this, "ViajesTable", {
+      tableName: "Viajes",
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+
+    // Índices necesarios
+    this.viajesTable.addGlobalSecondaryIndex({
+      indexName: "ViajesByRutaIndex",
+      partitionKey: { name: "rutaId", type: dynamodb.AttributeType.STRING },
+    });
+
+    this.viajesTable.addGlobalSecondaryIndex({
+      indexName: "ViajesByConductorIndex",
+      partitionKey: {
+        name: "conductorId",
+        type: dynamodb.AttributeType.STRING,
+      },
     });
   }
 }

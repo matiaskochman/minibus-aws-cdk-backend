@@ -1,71 +1,68 @@
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/handlers/rutas.ts
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import {
-  createRuta,
-  getRuta,
-  updateRuta,
-  deleteRuta,
-  listRutas,
-} from "../models/rutaModel";
+  createViaje,
+  getViaje,
+  updateViaje,
+  deleteViaje,
+  listViajes,
+} from "../models/viajeModel";
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const { httpMethod, pathParameters, body } = event;
+
   try {
     switch (httpMethod) {
       case "GET":
         if (pathParameters?.id) {
-          const ruta = await getRuta(pathParameters.id);
-          if (!ruta) {
-            return {
-              statusCode: 404,
-              body: JSON.stringify({ message: "Ruta no encontrada" }),
-            };
-          }
-          return { statusCode: 200, body: JSON.stringify(ruta) };
+          const viaje = await getViaje(pathParameters.id);
+          return viaje
+            ? { statusCode: 200, body: JSON.stringify(viaje) }
+            : {
+                statusCode: 404,
+                body: JSON.stringify({ message: "Viaje no encontrado" }),
+              };
         } else {
-          const rutas = await listRutas();
-          return { statusCode: 200, body: JSON.stringify(rutas) };
+          const viajes = await listViajes();
+          return { statusCode: 200, body: JSON.stringify(viajes) };
         }
 
       case "POST":
-        if (!body) {
+        if (!body)
           return {
             statusCode: 400,
             body: JSON.stringify({ message: "Cuerpo de solicitud faltante" }),
           };
-        }
+
         const data = JSON.parse(body);
-        if (!data.conductorId || !data.paradasDeRuta) {
+        if (!data.rutaId || !data.conductorId) {
           return {
             statusCode: 400,
             body: JSON.stringify({
-              message: "Faltan campos requeridos: conductorId y paradasDeRuta",
+              message: "rutaId y conductorId son requeridos",
             }),
           };
         }
-        // Se puede incluir validación adicional para la estructura de paradasDeRuta si es necesario.
-        const newRuta = await createRuta({
-          conductorId: data.conductorId,
-          estado: data.estado || "activa",
-          paradasDeRuta: data.paradasDeRuta,
+
+        const newViaje = await createViaje({
+          ...data,
+          estado: data.estado || "Pendiente",
           createdAt: new Date().toISOString(),
         });
-        return { statusCode: 201, body: JSON.stringify(newRuta) };
+        return { statusCode: 201, body: JSON.stringify(newViaje) };
 
       case "PUT":
         if (!pathParameters?.id || !body) {
           return {
             statusCode: 400,
-            body: JSON.stringify({
-              message: "ID o cuerpo de solicitud faltante",
-            }),
+            body: JSON.stringify({ message: "ID o cuerpo faltante" }),
           };
         }
+
         const updateData = JSON.parse(body);
-        const updatedRuta = await updateRuta(pathParameters.id, updateData);
-        return { statusCode: 200, body: JSON.stringify(updatedRuta) };
+        const updatedViaje = await updateViaje(pathParameters.id, updateData);
+        return { statusCode: 200, body: JSON.stringify(updatedViaje) };
 
       case "DELETE":
         if (!pathParameters?.id) {
@@ -74,7 +71,8 @@ export const handler = async (
             body: JSON.stringify({ message: "ID faltante" }),
           };
         }
-        await deleteRuta(pathParameters.id);
+
+        await deleteViaje(pathParameters.id);
         return { statusCode: 204, body: "" };
 
       default:
