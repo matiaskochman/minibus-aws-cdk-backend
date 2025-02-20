@@ -1,0 +1,30 @@
+export API_URL="http://localhost:4566/dev"
+
+export API_URL="https://gdykd7qhzs.execute-api.localhost.localstack.cloud:4566/dev"
+# Obtener todos los conductores
+curl -X GET "$API_URL/conductores"
+
+# Obtener un conductor por ID
+curl -X GET "$API_URL/conductores/{id}"
+
+# Crear un nuevo conductor
+curl -X POST "$API_URL/conductores" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "Usuario_ID": "123456",
+    "Foto_DNI": "url_imagen_dni",
+    "Foto_VTV": "url_imagen_vtv",
+    "Estado": "Pendiente",
+    "Vendedor_ID": "654321"
+  }'
+
+# Actualizar un conductor por ID
+curl -X PUT "$API_URL/conductores/{id}" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "Estado": "Aprobado",
+    "Foto_DNI": "nueva_url_imagen_dni"
+  }'
+
+# Eliminar un conductor por ID
+curl -X DELETE "$API_URL/conductores/{id}"
