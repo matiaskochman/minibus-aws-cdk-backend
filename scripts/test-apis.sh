@@ -189,6 +189,44 @@ test_paradas_de_ruta() {
     curl -s -X DELETE "$API_URL/paradasDeRuta/$PARADA_ID"
     echo ""
 }
+
+# Función para agregar una parada a una ruta
+agregar_parada_a_ruta() {
+    echo -e "\nProbando agregar parada a ruta"
+    curl -s -X PUT "$API_URL/rutas/$RUTA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "paradasDeRuta": [
+                {
+                    "id": "",
+                    "parada": {
+                        "id": "",
+                        "nombre": "Nueva Parada",
+                        "direccion": "Calle 123",
+                        "descripcion": "Descripción opcional"
+                    },
+                    "posicion": 3,
+                    "horario": "08:30"
+                }
+            ]
+        }'
+    echo ""
+}
+
+# Función para eliminar una parada de una ruta
+eliminar_parada_de_ruta() {
+    echo -e "\nProbando eliminar parada de ruta"
+    curl -s -X PUT "$API_URL/rutas/$RUTA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "paradasDeRuta": [
+                {
+                    "id": "id-de-la-parada-a-eliminar"
+                }
+            ]
+        }'
+    echo ""
+}
 # # Verificar que jq está instalado
 if ! command -v jq &> /dev/null
 then
@@ -201,3 +239,5 @@ test_conductores
 test_rutas
 test_paradas
 test_paradas_de_ruta
+agregar_parada_a_ruta
+eliminar_parada_de_ruta

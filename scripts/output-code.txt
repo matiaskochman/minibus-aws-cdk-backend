@@ -522,6 +522,155 @@ exports.handler = handler;
 
 /**********/
 
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/dist/handlers/paradasDeRuta.js
+"use strict";
+Object.defineProperty(exports, "__esModule", { value: true });
+exports.handler = void 0;
+const client_dynamodb_1 = require("@aws-sdk/client-dynamodb");
+const lib_dynamodb_1 = require("@aws-sdk/lib-dynamodb");
+const uuid_1 = require("uuid");
+const isLocal = process.env.USE_LOCALSTACK === "true";
+const dynamoEndpoint = process.env.DYNAMODB_ENDPOINT || "http:
+const ddbClient = new client_dynamodb_1.DynamoDBClient({
+    region: "us-east-1",
+    ...(isLocal && {
+        endpoint: dynamoEndpoint,
+        credentials: {
+            accessKeyId: "test",
+            secretAccessKey: "test",
+        },
+    }),
+});
+const docClient = lib_dynamodb_1.DynamoDBDocument.from(ddbClient, {
+    marshallOptions: { removeUndefinedValues: true },
+});
+const TABLE_NAME = process.env.PARADASDE_RUTA_TABLE || "ParadasDeRuta";
+const handler = async (event) => {
+    const { httpMethod, pathParameters, body } = event;
+    try {
+        switch (httpMethod) {
+            case "GET":
+                if (pathParameters?.id) {
+                    const result = await docClient.get({
+                        TableName: TABLE_NAME,
+                        Key: { id: pathParameters.id },
+                    });
+                    if (!result.Item) {
+                        return {
+                            statusCode: 404,
+                            body: JSON.stringify({ message: "Parada de ruta no encontrada" }),
+                        };
+                    }
+                    return {
+                        statusCode: 200,
+                        body: JSON.stringify(result.Item),
+                    };
+                }
+                else {
+                    const result = await docClient.scan({ TableName: TABLE_NAME });
+                    return {
+                        statusCode: 200,
+                        body: JSON.stringify(result.Items),
+                    };
+                }
+            case "POST":
+                if (!body) {
+                    return {
+                        statusCode: 400,
+                        body: JSON.stringify({
+                            message: "Falta el cuerpo de la solicitud",
+                        }),
+                    };
+                }
+                const data = JSON.parse(body);
+                if (!data.parada || data.posicion === undefined || !data.horario) {
+                    return {
+                        statusCode: 400,
+                        body: JSON.stringify({
+                            message: "Faltan campos requeridos: parada, posicion y horario",
+                        }),
+                    };
+                }
+                const newParadaDeRuta = {
+                    id: (0, uuid_1.v4)(),
+                    parada: data.parada,
+                    posicion: data.posicion,
+                    horario: data.horario,
+                };
+                await docClient.put({
+                    TableName: TABLE_NAME,
+                    Item: newParadaDeRuta,
+                });
+                return {
+                    statusCode: 201,
+                    body: JSON.stringify(newParadaDeRuta),
+                };
+            case "PUT":
+                if (!pathParameters?.id) {
+                    return {
+                        statusCode: 400,
+                        body: JSON.stringify({ message: "Falta el ID en la ruta" }),
+                    };
+                }
+                if (!body) {
+                    return {
+                        statusCode: 400,
+                        body: JSON.stringify({
+                            message: "Falta el cuerpo de la solicitud",
+                        }),
+                    };
+                }
+                const updateData = JSON.parse(body);
+                const updateExpressions = Object.keys(updateData).map((key) => `#${key} = :${key}`);
+                const updateResult = await docClient.update({
+                    TableName: TABLE_NAME,
+                    Key: { id: pathParameters.id },
+                    UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+                    ExpressionAttributeNames: Object.keys(updateData).reduce((acc, key) => ({ ...acc, [`#${key}`]: key }), {}),
+                    ExpressionAttributeValues: Object.keys(updateData).reduce((acc, key) => ({ ...acc, [`:${key}`]: updateData[key] }), {}),
+                    ReturnValues: "ALL_NEW",
+                });
+                return {
+                    statusCode: 200,
+                    body: JSON.stringify(updateResult.Attributes),
+                };
+            case "DELETE":
+                if (!pathParameters?.id) {
+                    return {
+                        statusCode: 400,
+                        body: JSON.stringify({ message: "Falta el ID en la ruta" }),
+                    };
+                }
+                await docClient.delete({
+                    TableName: TABLE_NAME,
+                    Key: { id: pathParameters.id },
+                });
+                return {
+                    statusCode: 204,
+                    body: "",
+                };
+            default:
+                return {
+                    statusCode: 405,
+                    body: JSON.stringify({ message: "Método no permitido" }),
+                };
+        }
+    }
+    catch (error) {
+        console.error("Error:", error);
+        return {
+            statusCode: 500,
+            body: JSON.stringify({
+                message: "Error interno",
+                error: error.message,
+            }),
+        };
+    }
+};
+exports.handler = handler;
+
+/**********/
+
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/dist/handlers/rutas.js
 "use strict";
 Object.defineProperty(exports, "__esModule", { value: true });
@@ -965,7 +1114,7 @@ class MinibusBackendAwsCdkStack extends cdk.Stack {
         paradaResource.addMethod("GET", new apigateway.LambdaIntegration(handlers.paradasHandler));
         paradaResource.addMethod("PUT", new apigateway.LambdaIntegration(handlers.paradasHandler));
         paradaResource.addMethod("DELETE", new apigateway.LambdaIntegration(handlers.paradasHandler));
-        const paradasDeRutaResource = api.root.addResource("paradas-de-ruta");
+        const paradasDeRutaResource = api.root.addResource("paradasDeRuta");
         paradasDeRutaResource.addMethod("GET", new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler));
         paradasDeRutaResource.addMethod("POST", new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler));
         const paradaDeRutaResource = paradasDeRutaResource.addResource("{id}");
@@ -1945,7 +2094,7 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
       "DELETE",
       new apigateway.LambdaIntegration(handlers.paradasHandler)
     );
-    const paradasDeRutaResource = api.root.addResource("paradas-de-ruta");
+    const paradasDeRutaResource = api.root.addResource("paradasDeRuta");
     paradasDeRutaResource.addMethod(
       "GET",
       new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler)
