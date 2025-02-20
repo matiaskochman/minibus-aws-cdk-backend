@@ -41,5 +41,21 @@ export class DynamoDBConstruct extends Construct {
 
     // Otras tablas (similar para vendors, routes, trips, commissions)
     // ... [implementación similar para las demás tablas]
+    /**
+     * 📌 Tabla de Rutas
+     */
+    this.routesTable = new dynamodb.Table(this, "RoutesTable", {
+      tableName: "Routes",
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+
+    this.routesTable.addGlobalSecondaryIndex({
+      indexName: "RoutesByConductorIndex",
+      partitionKey: {
+        name: "conductorId",
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
   }
 }

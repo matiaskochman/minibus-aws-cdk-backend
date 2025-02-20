@@ -13,6 +13,7 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
     const database = new DynamoDBConstruct(this, "Database");
     const handlers = new HandlersConstruct(this, "Handlers", {
       driversTable: database.driversTable,
+      routesTable: database.routesTable,
     });
 
     // Configurar API Gateway
@@ -56,5 +57,30 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
       value: api.urlForPath("/conductores"),
       description: "Endpoint de conductores",
     });
+
+    // Nueva configuración para rutas
+    const rutasResource = api.root.addResource("rutas");
+    rutasResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.rutasHandler)
+    );
+    rutasResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.rutasHandler)
+    );
+
+    const rutaResource = rutasResource.addResource("{id}");
+    rutaResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.rutasHandler)
+    );
+    rutaResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(handlers.rutasHandler)
+    );
+    rutaResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(handlers.rutasHandler)
+    );
   }
 }

@@ -1,12 +1,6 @@
 export API_URL="http://localhost:4566/dev"
 
-export API_URL="https://gdykd7qhzs.execute-api.localhost.localstack.cloud:4566/dev"
-# Obtener todos los conductores
-curl -X GET "$API_URL/conductores"
-
-# Obtener un conductor por ID
-curl -X GET "$API_URL/conductores/{id}"
-
+export API_URL="https://xda7r3arbb.execute-api.localhost.localstack.cloud:4566/dev/"
 # Crear un nuevo conductor
 curl -X POST "$API_URL/conductores" \
   -H "Content-Type: application/json" \
@@ -18,6 +12,13 @@ curl -X POST "$API_URL/conductores" \
     "Vendedor_ID": "654321"
   }'
 
+# Obtener todos los conductores
+curl -X GET "$API_URL/conductores"
+
+# Obtener un conductor por ID
+curl -X GET "$API_URL/conductores/{id}"
+
+
 # Actualizar un conductor por ID
 curl -X PUT "$API_URL/conductores/{id}" \
   -H "Content-Type: application/json" \
@@ -28,3 +29,16 @@ curl -X PUT "$API_URL/conductores/{id}" \
 
 # Eliminar un conductor por ID
 curl -X DELETE "$API_URL/conductores/{id}"
+
+export API_URL="https://xda7r3arbb.execute-api.localhost.localstack.cloud:4566/dev/"
+curl -X POST "$API_URL/rutas" \
+  -H "Content-Type: application/json" \
+  -d '{
+    "conductorId": "12345",
+    "origen": "Buenos Aires",
+    "destino": "Rosario",
+    "horarios": ["08:00", "16:00"],
+    "tarifa": 1500,
+    "asientosDisponibles": 12,
+    "estado": "activa"
+  }'
