@@ -88,6 +88,7 @@ export class HandlersConstruct extends Construct {
       environment: {
         USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
         TRIPS_TABLE: props.viajesTable.tableName,
+        PARADAS_DE_RUTA_TABLE: props.paradasDeRutaTable.tableName, // Nuevo
       },
       bundling: { externalModules: ["@aws-sdk"] },
     });

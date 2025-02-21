@@ -460,6 +460,107 @@ export const handler = async (
 
 /**********/
 
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/handlers/viajes.ts
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import {
+  createViaje,
+  getViaje,
+  updateViaje,
+  deleteViaje,
+  listViajes,
+} from "../models/viajeModel";
+export const handler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+  const { httpMethod, pathParameters, body } = event;
+  try {
+    switch (httpMethod) {
+      case "GET":
+        if (pathParameters?.id) {
+          const viaje = await getViaje(pathParameters.id);
+          if (!viaje) {
+            return {
+              statusCode: 404,
+              body: JSON.stringify({ message: "Viaje no encontrado" }),
+            };
+          }
+          return { statusCode: 200, body: JSON.stringify(viaje) };
+        } else {
+          const viajes = await listViajes();
+          return { statusCode: 200, body: JSON.stringify(viajes) };
+        }
+      case "POST":
+        if (!body) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ message: "Cuerpo de solicitud faltante" }),
+          };
+        }
+        const data = JSON.parse(body);
+        if (!data.rutaId || !data.conductorId || !data.paradasDeRuta) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({
+              message:
+                "Faltan campos requeridos: rutaId, conductorId, paradasDeRuta",
+            }),
+          };
+        }
+        const newViaje = await createViaje({
+          ...data,
+          estado: data.estado || "programado",
+          fechaInicio: new Date().toISOString(),
+        });
+        return { statusCode: 201, body: JSON.stringify(newViaje) };
+      case "PUT":
+        if (!pathParameters?.id || !body) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({
+              message: "ID o cuerpo de solicitud faltante",
+            }),
+          };
+        }
+        const updateData = JSON.parse(body);
+        if (
+          updateData.paradasDeRuta &&
+          !Array.isArray(updateData.paradasDeRuta)
+        ) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({
+              message: "paradasDeRuta debe ser un array",
+            }),
+          };
+        }
+        const updatedViaje = await updateViaje(pathParameters.id, updateData);
+        return { statusCode: 200, body: JSON.stringify(updatedViaje) };
+      case "DELETE":
+        if (!pathParameters?.id) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ message: "ID faltante" }),
+          };
+        }
+        await deleteViaje(pathParameters.id);
+        return { statusCode: 204, body: "" };
+      default:
+        return {
+          statusCode: 405,
+          body: JSON.stringify({ message: "Método no permitido" }),
+        };
+    }
+  } catch (error: any) {
+    console.error("Error:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Error interno", error: error.message }),
+    };
+  }
+};
+
+/**********/
+
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/lib/dynamodb-construct.ts
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
@@ -521,7 +622,6 @@ export class DynamoDBConstruct extends Construct {
     this.paradasDeRutaTable = new dynamodb.Table(this, "ParadasDeRutaTable", {
       tableName: "ParadasDeRuta",
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-      sortKey: { name: "posicion", type: dynamodb.AttributeType.NUMBER }, 
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
     });
     this.paradasDeRutaTable.addGlobalSecondaryIndex({
@@ -536,15 +636,11 @@ export class DynamoDBConstruct extends Construct {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
     });
     this.viajesTable.addGlobalSecondaryIndex({
-      indexName: "ViajesByRutaIndex",
-      partitionKey: { name: "rutaId", type: dynamodb.AttributeType.STRING },
-    });
-    this.viajesTable.addGlobalSecondaryIndex({
-      indexName: "ViajesByConductorIndex",
-      partitionKey: {
-        name: "conductorId",
-        type: dynamodb.AttributeType.STRING,
-      },
+      indexName: "ViajesByParadasIndex",
+      partitionKey: { name: "paradaId", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "createdAt", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.INCLUDE,
+      nonKeyAttributes: ["rutaId", "conductorId", "estado"],
     });
   }
 }
@@ -632,6 +728,7 @@ export class HandlersConstruct extends Construct {
       environment: {
         USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
         TRIPS_TABLE: props.viajesTable.tableName,
+        PARADAS_DE_RUTA_TABLE: props.paradasDeRutaTable.tableName, 
       },
       bundling: { externalModules: ["@aws-sdk"] },
     });
@@ -892,7 +989,7 @@ export const listConductores = async (): Promise<Conductor[]> => {
 
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/paradaDeRuta.ts
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocument, ScanCommandOutput } from "@aws-sdk/lib-dynamodb";
 import {
   PutCommand,
   GetCommand,
@@ -990,6 +1087,30 @@ export const listParadasDeRuta = async (): Promise<ParadaDeRuta[]> => {
     })
   );
   return result.Items as ParadaDeRuta[];
+};
+export const deleteAllParadasDeRuta = async (): Promise<void> => {
+  let lastEvaluatedKey = null;
+  do {
+    const scanResult: ScanCommandOutput = await docClient.send(
+      new ScanCommand({
+        TableName: TABLE_NAME,
+        ExclusiveStartKey: lastEvaluatedKey || undefined,
+      })
+    );
+    if (scanResult.Items && scanResult.Items.length > 0) {
+      await Promise.all(
+        scanResult.Items.map((item) =>
+          docClient.send(
+            new DeleteCommand({
+              TableName: TABLE_NAME,
+              Key: { id: item.id },
+            })
+          )
+        )
+      );
+    }
+    lastEvaluatedKey = scanResult.LastEvaluatedKey;
+  } while (lastEvaluatedKey);
 };
 
 /**********/
@@ -1186,6 +1307,113 @@ export const listRutas = async (): Promise<Ruta[]> => {
     })
   );
   return result.Items as Ruta[];
+};
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/viajeModel.ts
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { v4 as uuidv4 } from "uuid";
+import { Viaje } from "../types/viaje";
+const isLocal = process.env.USE_LOCALSTACK === "true";
+const dynamoEndpoint = process.env.DYNAMODB_ENDPOINT || "http:
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  ...(isLocal && {
+    endpoint: dynamoEndpoint,
+    credentials: {
+      accessKeyId: "test",
+      secretAccessKey: "test",
+    },
+  }),
+});
+const docClient = DynamoDBDocument.from(ddbClient, {
+  marshallOptions: { removeUndefinedValues: true },
+});
+const TABLE_NAME = process.env.TRIPS_TABLE || "Viajes";
+const PARADAS_DE_RUTA_TABLE =
+  process.env.PARADAS_DE_RUTA_TABLE || "ParadasDeRuta";
+export const createViaje = async (
+  viajeData: Omit<Viaje, "id">
+): Promise<Viaje> => {
+  if (!viajeData.paradasDeRuta || !Array.isArray(viajeData.paradasDeRuta)) {
+    throw new Error("ParadasDeRuta es requerido y debe ser un array");
+  }
+  const newViaje: Viaje = {
+    id: uuidv4(),
+    ...viajeData,
+    createdAt: new Date().toISOString(),
+  };
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: newViaje,
+    })
+  );
+  return newViaje;
+};
+export const getViaje = async (id: string): Promise<Viaje | null> => {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+  return (result.Item as Viaje) || null;
+};
+export const updateViaje = async (
+  id: string,
+  updateData: Partial<Viaje>
+): Promise<Viaje> => {
+  const updateExpressions = Object.keys(updateData).map(
+    (key) => `#${key} = :${key}`
+  );
+  const ExpressionAttributeNames = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`#${key}`]: key }),
+    {}
+  );
+  const ExpressionAttributeValues = Object.keys(updateData).reduce(
+    (acc, key) => ({
+      ...acc,
+      [`:${key}`]: updateData[key as keyof Viaje],
+    }),
+    {}
+  );
+  const { Attributes } = await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    })
+  );
+  return Attributes as Viaje;
+};
+export const deleteViaje = async (id: string): Promise<void> => {
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+};
+export const listViajes = async (): Promise<Viaje[]> => {
+  const result = await docClient.send(
+    new ScanCommand({
+      TableName: TABLE_NAME,
+    })
+  );
+  return result.Items as Viaje[];
 };
 
 /**********/

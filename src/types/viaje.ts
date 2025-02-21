@@ -1,3 +1,4 @@
+import { ParadaDeRuta } from "./paradaDeRuta";
 import { Ruta } from "./ruta";
 
 export interface Viaje {
@@ -10,5 +11,6 @@ export interface Viaje {
   reventaActivada: boolean;
   descuento: number;
   ruta: Ruta;
+  paradasDeRuta: ParadaDeRuta[];
   createdAt: string;
 }

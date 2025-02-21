@@ -1,4 +1,3 @@
-// models/viajeModel.ts
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
 import {
@@ -8,8 +7,8 @@ import {
   DeleteCommand,
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
+import { v4 as uuidv4 } from "uuid";
 import { Viaje } from "../types/viaje";
-import { v4 as uuidv4 } from "uuid"; // ✅ Importar correctamente
 
 const isLocal = process.env.USE_LOCALSTACK === "true";
 const dynamoEndpoint =
@@ -30,14 +29,21 @@ const docClient = DynamoDBDocument.from(ddbClient, {
   marshallOptions: { removeUndefinedValues: true },
 });
 
-const TABLE_NAME = process.env.TRIPS_TABLE || "Trips";
+const TABLE_NAME = process.env.TRIPS_TABLE || "Viajes";
+const PARADAS_DE_RUTA_TABLE =
+  process.env.PARADAS_DE_RUTA_TABLE || "ParadasDeRuta";
 
 export const createViaje = async (
   viajeData: Omit<Viaje, "id">
 ): Promise<Viaje> => {
+  if (!viajeData.paradasDeRuta || !Array.isArray(viajeData.paradasDeRuta)) {
+    throw new Error("ParadasDeRuta es requerido y debe ser un array");
+  }
+
   const newViaje: Viaje = {
     id: uuidv4(),
     ...viajeData,
+    createdAt: new Date().toISOString(),
   };
 
   await docClient.send(
@@ -57,7 +63,6 @@ export const getViaje = async (id: string): Promise<Viaje | null> => {
       Key: { id },
     })
   );
-
   return (result.Item as Viaje) || null;
 };
 
@@ -75,7 +80,10 @@ export const updateViaje = async (
   );
 
   const ExpressionAttributeValues = Object.keys(updateData).reduce(
-    (acc, key) => ({ ...acc, [`:${key}`]: updateData[key as keyof Viaje] }),
+    (acc, key) => ({
+      ...acc,
+      [`:${key}`]: updateData[key as keyof Viaje],
+    }),
     {}
   );
 
@@ -108,6 +116,5 @@ export const listViajes = async (): Promise<Viaje[]> => {
       TableName: TABLE_NAME,
     })
   );
-
   return result.Items as Viaje[];
 };

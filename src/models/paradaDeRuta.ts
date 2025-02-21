@@ -1,5 +1,5 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocument, ScanCommandOutput } from "@aws-sdk/lib-dynamodb";
 import {
   PutCommand,
   GetCommand,
@@ -110,4 +110,33 @@ export const listParadasDeRuta = async (): Promise<ParadaDeRuta[]> => {
     })
   );
   return result.Items as ParadaDeRuta[];
+};
+
+// Implementación alternativa con paginación y batches
+export const deleteAllParadasDeRuta = async (): Promise<void> => {
+  let lastEvaluatedKey = null;
+
+  do {
+    const scanResult: ScanCommandOutput = await docClient.send(
+      new ScanCommand({
+        TableName: TABLE_NAME,
+        ExclusiveStartKey: lastEvaluatedKey || undefined,
+      })
+    );
+
+    if (scanResult.Items && scanResult.Items.length > 0) {
+      await Promise.all(
+        scanResult.Items.map((item) =>
+          docClient.send(
+            new DeleteCommand({
+              TableName: TABLE_NAME,
+              Key: { id: item.id },
+            })
+          )
+        )
+      );
+    }
+
+    lastEvaluatedKey = scanResult.LastEvaluatedKey;
+  } while (lastEvaluatedKey);
 };

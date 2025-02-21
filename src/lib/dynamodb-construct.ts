@@ -81,24 +81,20 @@ export class DynamoDBConstruct extends Construct {
       projectionType: dynamodb.ProjectionType.ALL, // Indexa todas las columnas
     });
 
+    // Índices necesarios
     this.viajesTable = new dynamodb.Table(this, "ViajesTable", {
       tableName: "Viajes",
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
     });
 
-    // Índices necesarios
+    // Nuevo GSI
     this.viajesTable.addGlobalSecondaryIndex({
-      indexName: "ViajesByRutaIndex",
-      partitionKey: { name: "rutaId", type: dynamodb.AttributeType.STRING },
-    });
-
-    this.viajesTable.addGlobalSecondaryIndex({
-      indexName: "ViajesByConductorIndex",
-      partitionKey: {
-        name: "conductorId",
-        type: dynamodb.AttributeType.STRING,
-      },
+      indexName: "ViajesByParadasIndex",
+      partitionKey: { name: "paradaId", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "createdAt", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.INCLUDE,
+      nonKeyAttributes: ["rutaId", "conductorId", "estado"],
     });
   }
 }
