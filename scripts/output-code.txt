@@ -1,10 +1,8 @@
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/cdk.json
 {
-  "app": "npx ts-node --prefer-ts-exts bin/minibus-backend-aws-cdk.ts",
+  "app": "npx ts-node --prefer-ts-exts src/bin/minibus-backend-aws-cdk.ts",
   "watch": {
-    "include": [
-      "**"
-    ],
+    "include": ["**"],
     "exclude": [
       "README.md",
       "cdk*.json",
@@ -19,10 +17,7 @@
   "context": {
     "@aws-cdk/aws-lambda:recognizeLayerVersion": true,
     "@aws-cdk/core:checkSecretUsage": true,
-    "@aws-cdk/core:target-partitions": [
-      "aws",
-      "aws-cn"
-    ],
+    "@aws-cdk/core:target-partitions": ["aws", "aws-cn"],
     "@aws-cdk-containers/ecs-service-extensions:enableDefaultLogDriver": true,
     "@aws-cdk/aws-ec2:uniqueImdsv2TemplateName": true,
     "@aws-cdk/aws-ecs:arnFormatIncludesClusterName": true,
@@ -188,6 +183,193 @@ export const handler = async (
 
 /**********/
 
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/handlers/paradas.ts
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import {
+  createParada,
+  getParada,
+  updateParada,
+  deleteParada,
+  listParadas,
+} from "../models/paradaModel";
+export const handler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+  const { httpMethod, pathParameters, body } = event;
+  try {
+    switch (httpMethod) {
+      case "GET":
+        if (pathParameters?.id) {
+          const parada = await getParada(pathParameters.id);
+          if (!parada) {
+            return {
+              statusCode: 404,
+              body: JSON.stringify({ message: "Parada no encontrada" }),
+            };
+          }
+          return { statusCode: 200, body: JSON.stringify(parada) };
+        } else {
+          const paradas = await listParadas();
+          return { statusCode: 200, body: JSON.stringify(paradas) };
+        }
+      case "POST":
+        if (!body) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({
+              message: "Falta el cuerpo de la solicitud",
+            }),
+          };
+        }
+        const data = JSON.parse(body);
+        if (
+          !data.nombre ||
+          !data.descripcion ||
+          !data.calle ||
+          !data.numero ||
+          !data.localidad ||
+          !data.codigoPostal ||
+          !data.partido ||
+          !data.provincia
+        ) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({
+              message:
+                "Faltan campos requeridos: nombre, descripcion, calle, numero, localidad, codigoPostal, partido, provincia",
+            }),
+          };
+        }
+        const newParada = await createParada(data);
+        return { statusCode: 201, body: JSON.stringify(newParada) };
+      case "PUT":
+        if (!pathParameters?.id || !body) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({
+              message: "Falta el ID o el cuerpo de la solicitud",
+            }),
+          };
+        }
+        const updateData = JSON.parse(body);
+        const updatedParada = await updateParada(pathParameters.id, updateData);
+        return { statusCode: 200, body: JSON.stringify(updatedParada) };
+      case "DELETE":
+        if (!pathParameters?.id) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ message: "Falta el ID en la ruta" }),
+          };
+        }
+        await deleteParada(pathParameters.id);
+        return { statusCode: 204, body: "" };
+      default:
+        return {
+          statusCode: 405,
+          body: JSON.stringify({ message: "Método no permitido" }),
+        };
+    }
+  } catch (error: any) {
+    console.error("Error:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Error interno", error: error.message }),
+    };
+  }
+};
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/handlers/paradasDeRuta.ts
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import {
+  createParadaDeRuta,
+  getParadaDeRuta,
+  updateParadaDeRuta,
+  deleteParadaDeRuta,
+  listParadasDeRuta,
+} from "../models/paradaDeRuta";
+export const handler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+  const { httpMethod, pathParameters, body } = event;
+  try {
+    switch (httpMethod) {
+      case "GET":
+        if (pathParameters?.id) {
+          const paradaDeRuta = await getParadaDeRuta(pathParameters.id);
+          if (!paradaDeRuta) {
+            return {
+              statusCode: 404,
+              body: JSON.stringify({ message: "Parada de ruta no encontrada" }),
+            };
+          }
+          return { statusCode: 200, body: JSON.stringify(paradaDeRuta) };
+        } else {
+          const paradasDeRuta = await listParadasDeRuta();
+          return { statusCode: 200, body: JSON.stringify(paradasDeRuta) };
+        }
+      case "POST":
+        if (!body) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({
+              message: "Falta el cuerpo de la solicitud",
+            }),
+          };
+        }
+        const data = JSON.parse(body);
+        if (!data.parada || data.posicion === undefined || !data.horario) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({
+              message: "Faltan campos requeridos: parada, posicion y horario",
+            }),
+          };
+        }
+        const newParadaDeRuta = await createParadaDeRuta(data);
+        return { statusCode: 201, body: JSON.stringify(newParadaDeRuta) };
+      case "PUT":
+        if (!pathParameters?.id || !body) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({
+              message: "Falta el ID o el cuerpo de la solicitud",
+            }),
+          };
+        }
+        const updateData = JSON.parse(body);
+        const updatedParadaDeRuta = await updateParadaDeRuta(
+          pathParameters.id,
+          updateData
+        );
+        return { statusCode: 200, body: JSON.stringify(updatedParadaDeRuta) };
+      case "DELETE":
+        if (!pathParameters?.id) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ message: "Falta el ID en la ruta" }),
+          };
+        }
+        await deleteParadaDeRuta(pathParameters.id);
+        return { statusCode: 204, body: "" };
+      default:
+        return {
+          statusCode: 405,
+          body: JSON.stringify({ message: "Método no permitido" }),
+        };
+    }
+  } catch (error: any) {
+    console.error("Error:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Error interno", error: error.message }),
+    };
+  }
+};
+
+/**********/
+
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/handlers/rutas.ts
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import {
@@ -278,190 +460,6 @@ export const handler = async (
 
 /**********/
 
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/handlers/viajes.ts
-import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import {
-  createViaje,
-  getViaje,
-  updateViaje,
-  deleteViaje,
-  listViajes,
-} from "../models/viajeModel";
-export const handler = async (
-  event: APIGatewayProxyEvent
-): Promise<APIGatewayProxyResult> => {
-  const { httpMethod, pathParameters, body } = event;
-  try {
-    switch (httpMethod) {
-      case "GET":
-        if (pathParameters?.id) {
-          const viaje = await getViaje(pathParameters.id);
-          return viaje
-            ? { statusCode: 200, body: JSON.stringify(viaje) }
-            : {
-                statusCode: 404,
-                body: JSON.stringify({ message: "Viaje no encontrado" }),
-              };
-        } else {
-          const viajes = await listViajes();
-          return { statusCode: 200, body: JSON.stringify(viajes) };
-        }
-      case "POST":
-        if (!body)
-          return {
-            statusCode: 400,
-            body: JSON.stringify({ message: "Cuerpo de solicitud faltante" }),
-          };
-        const data = JSON.parse(body);
-        if (!data.rutaId || !data.conductorId) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({
-              message: "rutaId y conductorId son requeridos",
-            }),
-          };
-        }
-        const newViaje = await createViaje({
-          ...data,
-          estado: data.estado || "Pendiente",
-          createdAt: new Date().toISOString(),
-        });
-        return { statusCode: 201, body: JSON.stringify(newViaje) };
-      case "PUT":
-        if (!pathParameters?.id || !body) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({ message: "ID o cuerpo faltante" }),
-          };
-        }
-        const updateData = JSON.parse(body);
-        const updatedViaje = await updateViaje(pathParameters.id, updateData);
-        return { statusCode: 200, body: JSON.stringify(updatedViaje) };
-      case "DELETE":
-        if (!pathParameters?.id) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({ message: "ID faltante" }),
-          };
-        }
-        await deleteViaje(pathParameters.id);
-        return { statusCode: 204, body: "" };
-      default:
-        return {
-          statusCode: 405,
-          body: JSON.stringify({ message: "Método no permitido" }),
-        };
-    }
-  } catch (error: any) {
-    console.error("Error:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ message: "Error interno", error: error.message }),
-    };
-  }
-};
-
-/**********/
-
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/lib/dynamobd-stack.ts
-import * as cdk from "aws-cdk-lib";
-import { Construct } from "constructs";
-import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-export class DynamoDBStack extends cdk.Stack {
-  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
-    super(scope, id, props);
-    const usersTable = new dynamodb.Table(this, "UsersTable", {
-      tableName: "Users",
-      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-    });
-    usersTable.addGlobalSecondaryIndex({
-      indexName: "UsersByRoleIndex",
-      partitionKey: { name: "role", type: dynamodb.AttributeType.STRING },
-    });
-    const driversTable = new dynamodb.Table(this, "DriversTable", {
-      tableName: "Drivers",
-      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-    });
-    driversTable.addGlobalSecondaryIndex({
-      indexName: "DriverByUserIndex",
-      partitionKey: { name: "usuarioId", type: dynamodb.AttributeType.STRING },
-    });
-    driversTable.addGlobalSecondaryIndex({
-      indexName: "DriversByVendorIndex",
-      partitionKey: { name: "vendedorId", type: dynamodb.AttributeType.STRING },
-    });
-    const vendorsTable = new dynamodb.Table(this, "VendorsTable", {
-      tableName: "Vendors",
-      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-    });
-    vendorsTable.addGlobalSecondaryIndex({
-      indexName: "VendorByUserIndex",
-      partitionKey: { name: "usuarioId", type: dynamodb.AttributeType.STRING },
-    });
-    const routesTable = new dynamodb.Table(this, "RoutesTable", {
-      tableName: "Routes",
-      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-    });
-    routesTable.addGlobalSecondaryIndex({
-      indexName: "RoutesByConductorIndex",
-      partitionKey: {
-        name: "conductorId",
-        type: dynamodb.AttributeType.STRING,
-      },
-    });
-    const tripsTable = new dynamodb.Table(this, "TripsTable", {
-      tableName: "Trips",
-      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-    });
-    tripsTable.addGlobalSecondaryIndex({
-      indexName: "TripsByRutaIndex",
-      partitionKey: { name: "rutaId", type: dynamodb.AttributeType.STRING },
-    });
-    tripsTable.addGlobalSecondaryIndex({
-      indexName: "TripsByConductorIndex",
-      partitionKey: {
-        name: "conductorId",
-        type: dynamodb.AttributeType.STRING,
-      },
-    });
-    const commissionsTable = new dynamodb.Table(this, "CommissionsTable", {
-      tableName: "Commissions",
-      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
-    });
-    commissionsTable.addGlobalSecondaryIndex({
-      indexName: "CommissionsByVendorIndex",
-      partitionKey: { name: "vendedorId", type: dynamodb.AttributeType.STRING },
-    });
-    commissionsTable.addGlobalSecondaryIndex({
-      indexName: "CommissionsByConductorIndex",
-      partitionKey: {
-        name: "conductorId",
-        type: dynamodb.AttributeType.STRING,
-      },
-    });
-    new cdk.CfnOutput(this, "UsersTableArn", { value: usersTable.tableArn });
-    new cdk.CfnOutput(this, "DriversTableArn", {
-      value: driversTable.tableArn,
-    });
-    new cdk.CfnOutput(this, "VendorsTableArn", {
-      value: vendorsTable.tableArn,
-    });
-    new cdk.CfnOutput(this, "RoutesTableArn", { value: routesTable.tableArn });
-    new cdk.CfnOutput(this, "TripsTableArn", { value: tripsTable.tableArn });
-    new cdk.CfnOutput(this, "CommissionsTableArn", {
-      value: commissionsTable.tableArn,
-    });
-  }
-}
-
-/**********/
-
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/lib/dynamodb-construct.ts
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
@@ -523,7 +521,14 @@ export class DynamoDBConstruct extends Construct {
     this.paradasDeRutaTable = new dynamodb.Table(this, "ParadasDeRutaTable", {
       tableName: "ParadasDeRuta",
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "posicion", type: dynamodb.AttributeType.NUMBER }, 
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+    this.paradasDeRutaTable.addGlobalSecondaryIndex({
+      indexName: "ParadasPorLocalidadIndex",
+      partitionKey: { name: "localidad", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "provincia", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL, 
     });
     this.viajesTable = new dynamodb.Table(this, "ViajesTable", {
       tableName: "Viajes",
@@ -885,6 +890,209 @@ export const listConductores = async (): Promise<Conductor[]> => {
 
 /**********/
 
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/paradaDeRuta.ts
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { v4 as uuidv4 } from "uuid";
+import { ParadaDeRuta } from "../types/paradaDeRuta";
+const isLocal = process.env.USE_LOCALSTACK === "true";
+const dynamoEndpoint =
+  process.env.DYNAMODB_ENDPOINT || "http:
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  ...(isLocal && {
+    endpoint: dynamoEndpoint,
+    credentials: {
+      accessKeyId: "test",
+      secretAccessKey: "test",
+    },
+  }),
+});
+const docClient = DynamoDBDocument.from(ddbClient, {
+  marshallOptions: { removeUndefinedValues: true },
+});
+const TABLE_NAME = process.env.PARADASDE_RUTA_TABLE || "ParadasDeRuta";
+export const createParadaDeRuta = async (
+  paradaData: Omit<ParadaDeRuta, "id">
+): Promise<ParadaDeRuta> => {
+  const newParada: ParadaDeRuta = {
+    id: uuidv4(),
+    ...paradaData,
+  };
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: newParada,
+    })
+  );
+  return newParada;
+};
+export const getParadaDeRuta = async (
+  id: string
+): Promise<ParadaDeRuta | null> => {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+  return (result.Item as ParadaDeRuta) || null;
+};
+export const updateParadaDeRuta = async (
+  id: string,
+  updateData: Partial<ParadaDeRuta>
+): Promise<ParadaDeRuta> => {
+  const updateExpressions = Object.keys(updateData).map(
+    (key) => `#${key} = :${key}`
+  );
+  const ExpressionAttributeNames = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`#${key}`]: key }),
+    {}
+  );
+  const ExpressionAttributeValues = Object.keys(updateData).reduce(
+    (acc, key) => ({
+      ...acc,
+      [`:${key}`]: updateData[key as keyof ParadaDeRuta],
+    }),
+    {}
+  );
+  const { Attributes } = await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    })
+  );
+  return Attributes as ParadaDeRuta;
+};
+export const deleteParadaDeRuta = async (id: string): Promise<void> => {
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+};
+export const listParadasDeRuta = async (): Promise<ParadaDeRuta[]> => {
+  const result = await docClient.send(
+    new ScanCommand({
+      TableName: TABLE_NAME,
+    })
+  );
+  return result.Items as ParadaDeRuta[];
+};
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/paradaModel.ts
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { v4 as uuidv4 } from "uuid";
+import { Parada } from "../types/parada";
+const isLocal = process.env.USE_LOCALSTACK === "true";
+const dynamoEndpoint =
+  process.env.DYNAMODB_ENDPOINT || "http:
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  ...(isLocal && {
+    endpoint: dynamoEndpoint,
+    credentials: {
+      accessKeyId: "test",
+      secretAccessKey: "test",
+    },
+  }),
+});
+const docClient = DynamoDBDocument.from(ddbClient, {
+  marshallOptions: { removeUndefinedValues: true },
+});
+const TABLE_NAME = process.env.PARADAS_TABLE || "Paradas";
+export const createParada = async (
+  paradaData: Omit<Parada, "id">
+): Promise<Parada> => {
+  const newParada: Parada = {
+    id: uuidv4(),
+    ...paradaData,
+  };
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: newParada,
+    })
+  );
+  return newParada;
+};
+export const getParada = async (id: string): Promise<Parada | null> => {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+  return (result.Item as Parada) || null;
+};
+export const updateParada = async (
+  id: string,
+  updateData: Partial<Parada>
+): Promise<Parada> => {
+  const updateExpressions = Object.keys(updateData).map(
+    (key) => `#${key} = :${key}`
+  );
+  const ExpressionAttributeNames = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`#${key}`]: key }),
+    {}
+  );
+  const ExpressionAttributeValues = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`:${key}`]: updateData[key as keyof Parada] }),
+    {}
+  );
+  const { Attributes } = await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    })
+  );
+  return Attributes as Parada;
+};
+export const deleteParada = async (id: string): Promise<void> => {
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+};
+export const listParadas = async (): Promise<Parada[]> => {
+  const result = await docClient.send(
+    new ScanCommand({
+      TableName: TABLE_NAME,
+    })
+  );
+  return result.Items as Parada[];
+};
+
+/**********/
+
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/rutaModel.ts
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
@@ -978,105 +1186,6 @@ export const listRutas = async (): Promise<Ruta[]> => {
     })
   );
   return result.Items as Ruta[];
-};
-
-/**********/
-
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/viajeModel.ts
-import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
-import {
-  PutCommand,
-  GetCommand,
-  UpdateCommand,
-  DeleteCommand,
-  ScanCommand,
-} from "@aws-sdk/lib-dynamodb";
-import { Viaje } from "../types/viaje";
-import { v4 as uuidv4 } from "uuid"; 
-const isLocal = process.env.USE_LOCALSTACK === "true";
-const dynamoEndpoint =
-  process.env.DYNAMODB_ENDPOINT || "http:
-const ddbClient = new DynamoDBClient({
-  region: "us-east-1",
-  ...(isLocal && {
-    endpoint: dynamoEndpoint,
-    credentials: {
-      accessKeyId: "test",
-      secretAccessKey: "test",
-    },
-  }),
-});
-const docClient = DynamoDBDocument.from(ddbClient, {
-  marshallOptions: { removeUndefinedValues: true },
-});
-const TABLE_NAME = process.env.TRIPS_TABLE || "Trips";
-export const createViaje = async (
-  viajeData: Omit<Viaje, "id">
-): Promise<Viaje> => {
-  const newViaje: Viaje = {
-    id: uuidv4(),
-    ...viajeData,
-  };
-  await docClient.send(
-    new PutCommand({
-      TableName: TABLE_NAME,
-      Item: newViaje,
-    })
-  );
-  return newViaje;
-};
-export const getViaje = async (id: string): Promise<Viaje | null> => {
-  const result = await docClient.send(
-    new GetCommand({
-      TableName: TABLE_NAME,
-      Key: { id },
-    })
-  );
-  return (result.Item as Viaje) || null;
-};
-export const updateViaje = async (
-  id: string,
-  updateData: Partial<Viaje>
-): Promise<Viaje> => {
-  const updateExpressions = Object.keys(updateData).map(
-    (key) => `#${key} = :${key}`
-  );
-  const ExpressionAttributeNames = Object.keys(updateData).reduce(
-    (acc, key) => ({ ...acc, [`#${key}`]: key }),
-    {}
-  );
-  const ExpressionAttributeValues = Object.keys(updateData).reduce(
-    (acc, key) => ({ ...acc, [`:${key}`]: updateData[key as keyof Viaje] }),
-    {}
-  );
-  const { Attributes } = await docClient.send(
-    new UpdateCommand({
-      TableName: TABLE_NAME,
-      Key: { id },
-      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
-      ExpressionAttributeNames,
-      ExpressionAttributeValues,
-      ReturnValues: "ALL_NEW",
-    })
-  );
-  return Attributes as Viaje;
-};
-export const deleteViaje = async (id: string): Promise<void> => {
-  await docClient.send(
-    new DeleteCommand({
-      TableName: TABLE_NAME,
-      Key: { id },
-    })
-  );
-};
-export const listViajes = async (): Promise<Viaje[]> => {
-  const result = await docClient.send(
-    new ScanCommand({
-      TableName: TABLE_NAME,
-    })
-  );
-  return result.Items as Viaje[];
 };
 
 /**********/

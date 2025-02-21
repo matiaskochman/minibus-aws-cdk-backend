@@ -72,10 +72,8 @@ export class DynamoDBConstruct extends Construct {
     this.paradasDeRutaTable = new dynamodb.Table(this, "ParadasDeRutaTable", {
       tableName: "ParadasDeRuta",
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
-      sortKey: { name: "posicion", type: dynamodb.AttributeType.NUMBER }, // Orden de la parada en la ruta
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
     });
-
     this.paradasDeRutaTable.addGlobalSecondaryIndex({
       indexName: "ParadasPorLocalidadIndex",
       partitionKey: { name: "localidad", type: dynamodb.AttributeType.STRING },

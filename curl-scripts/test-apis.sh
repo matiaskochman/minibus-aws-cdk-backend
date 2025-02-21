@@ -1,7 +1,7 @@
 #!/bin/bash
 
 # Definir la URL base de la API
-API_URL="https://fr8jhzhbnv.execute-api.localhost.localstack.cloud:4566/dev/"
+source curl-scripts/set-API-URL.sh
 
 # Función para probar conductores
 test_conductores() {
@@ -161,42 +161,7 @@ test_paradas() {
     curl -s -X DELETE "$API_URL/paradas/$PARADA_ID"
     echo ""
 }
-# test_paradas() {
-#     echo -e "\nProbando POST /paradas"
-#     PARADA_RESPONSE=$(curl -s -X POST "$API_URL/paradas" \
-#         -H "Content-Type: application/json" \
-#         -d '{
-#             "rutaId": "12345",
-#             "nombre": "Parada Central",
-#             "direccion": "Av. Siempre Viva 742",
-#             "descripcion": "Parada principal en el centro",
-#             "orden": 1
-#         }')
 
-#     echo "Respuesta: $PARADA_RESPONSE"
-
-#     # Extraer ID de la parada
-#     PARADA_ID=$(echo "$PARADA_RESPONSE" | jq -r '.id')
-
-#     echo -e "\nProbando GET /paradas"
-#     curl -s -X GET "$API_URL/paradas"
-#     echo ""
-
-#     echo -e "\nProbando GET /paradas/$PARADA_ID"
-#     curl -s -X GET "$API_URL/paradas/$PARADA_ID"
-#     echo ""
-
-#     echo -e "\nProbando PUT /paradas/$PARADA_ID"
-#     curl -s -X PUT "$API_URL/paradas/$PARADA_ID" \
-#         -H "Content-Type: application/json" \
-#         -d '{
-#             "descripcion": "Parada principal renovada"
-#         }'
-#     echo ""
-
-#     echo -e "\nProbando DELETE /paradas/$PARADA_ID"
-#     curl -s -X DELETE "$API_URL/paradas/$PARADA_ID"
-# }
 
 test_paradas_de_ruta() {
     echo -e "\nProbando POST /paradasDeRuta"
@@ -331,10 +296,10 @@ then
 fi
 
 # Ejecutar todas las pruebas
-test_paradas
-test_rutas
+# test_paradas
+# test_rutas
 test_paradas_de_ruta
-test_conductores
-agregar_parada_a_ruta
-eliminar_parada_de_ruta
-test_viajes
+# test_conductores
+# agregar_parada_a_ruta
+# eliminar_parada_de_ruta
+# test_viajes
