@@ -96,5 +96,21 @@ export class DynamoDBConstruct extends Construct {
       projectionType: dynamodb.ProjectionType.INCLUDE,
       nonKeyAttributes: ["rutaId", "conductorId", "estado"],
     });
+
+    this.viajesTable.addGlobalSecondaryIndex({
+      indexName: "ViajesPorRutaIndex",
+      partitionKey: { name: "rutaId", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "createdAt", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+    this.viajesTable.addGlobalSecondaryIndex({
+      indexName: "ViajesPorConductorIndex",
+      partitionKey: {
+        name: "conductorId",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: { name: "createdAt", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
   }
 }

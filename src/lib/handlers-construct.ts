@@ -12,6 +12,7 @@ interface HandlersConstructProps {
   paradasTable: dynamodb.Table;
   paradasDeRutaTable: dynamodb.Table;
   viajesTable: dynamodb.Table;
+  usersTable: dynamodb.Table;
 }
 
 export class HandlersConstruct extends Construct {
@@ -20,6 +21,7 @@ export class HandlersConstruct extends Construct {
   public readonly paradasHandler: lambdaNode.NodejsFunction;
   public readonly paradasDeRutaHandler: lambdaNode.NodejsFunction;
   public readonly viajesHandler: lambdaNode.NodejsFunction;
+  public readonly usuariosHandler: lambdaNode.NodejsFunction;
 
   constructor(scope: Construct, id: string, props: HandlersConstructProps) {
     super(scope, id);
@@ -93,6 +95,23 @@ export class HandlersConstruct extends Construct {
       bundling: { externalModules: ["@aws-sdk"] },
     });
 
+    // Añadir este handler
+    this.usuariosHandler = new lambdaNode.NodejsFunction(
+      this,
+      "UsuariosHandler",
+      {
+        runtime: lambda.Runtime.NODEJS_18_X,
+        entry: path.join(__dirname, "../handlers/usuarios.ts"),
+        handler: "handler",
+        environment: {
+          USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
+          USERS_TABLE: props.usersTable.tableName,
+        },
+        bundling: { externalModules: ["@aws-sdk"] },
+      }
+    );
+
+    props.usersTable.grantReadWriteData(this.usuariosHandler);
     props.viajesTable.grantReadWriteData(this.viajesHandler);
     props.driversTable.grantReadWriteData(this.conductoresHandler);
     props.routesTable.grantReadWriteData(this.rutasHandler);

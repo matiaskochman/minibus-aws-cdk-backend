@@ -5,16 +5,28 @@ import {
   updateViaje,
   deleteViaje,
   listViajes,
+  getViajesPorRuta,
+  getViajesPorConductor,
 } from "../models/viajeModel";
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
-  const { httpMethod, pathParameters, body } = event;
+  const { httpMethod, pathParameters, body, queryStringParameters } = event;
 
   try {
     switch (httpMethod) {
       case "GET":
+        if (event.queryStringParameters?.conductorId) {
+          const viajes = await getViajesPorConductor(
+            event.queryStringParameters.conductorId
+          );
+          return { statusCode: 200, body: JSON.stringify(viajes) };
+        }
+        if (queryStringParameters?.rutaId) {
+          const viajes = await getViajesPorRuta(queryStringParameters.rutaId);
+          return { statusCode: 200, body: JSON.stringify(viajes) };
+        }
         if (pathParameters?.id) {
           const viaje = await getViaje(pathParameters.id);
           if (!viaje) {

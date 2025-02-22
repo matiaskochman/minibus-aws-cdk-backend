@@ -1,5 +1,5 @@
 import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
-import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import { DynamoDBDocument, QueryCommand } from "@aws-sdk/lib-dynamodb";
 import {
   PutCommand,
   GetCommand,
@@ -114,6 +114,38 @@ export const listViajes = async (): Promise<Viaje[]> => {
   const result = await docClient.send(
     new ScanCommand({
       TableName: TABLE_NAME,
+    })
+  );
+  return result.Items as Viaje[];
+};
+
+export const getViajesPorRuta = async (rutaId: string): Promise<Viaje[]> => {
+  const result = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      IndexName: "ViajesPorRutaIndex",
+      KeyConditionExpression: "rutaId = :rutaId",
+      ExpressionAttributeValues: {
+        ":rutaId": rutaId,
+      },
+      ScanIndexForward: false, // Orden descendente (más recientes primero)
+    })
+  );
+  return result.Items as Viaje[];
+};
+
+export const getViajesPorConductor = async (
+  conductorId: string
+): Promise<Viaje[]> => {
+  const result = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      IndexName: "ViajesPorConductorIndex",
+      KeyConditionExpression: "conductorId = :conductorId",
+      ExpressionAttributeValues: {
+        ":conductorId": conductorId,
+      },
+      ScanIndexForward: false, // Orden descendente por fecha
     })
   );
   return result.Items as Viaje[];

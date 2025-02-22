@@ -17,6 +17,7 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
       paradasTable: database.paradasTable,
       paradasDeRutaTable: database.paradasDeRutaTable,
       viajesTable: database.viajesTable,
+      usersTable: database.usersTable,
     });
 
     // Configurar API Gateway
@@ -155,6 +156,29 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
     viajeResource.addMethod(
       "DELETE",
       new apigateway.LambdaIntegration(handlers.viajesHandler)
+    );
+    const usuariosResource = api.root.addResource("usuarios");
+    usuariosResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    usuariosResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    // Añadir recursos para usuarios
+    const usuarioResource = usuariosResource.addResource("{id}");
+    usuarioResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    usuarioResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    usuarioResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
     );
   }
 }

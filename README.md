@@ -241,9 +241,9 @@ export AWS_DEFAULT_REGION=us-east-1
 # Then:
 
 cdklocal bootstrap
-cdklocal deploy
+cdklocal deploy --require-approval never
 
-cdklocal destroy
+cdklocal destroy --require-approval never
 
 awslocal dynamodb list-tables
 awslocal s3 ls
