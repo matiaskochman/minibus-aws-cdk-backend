@@ -38,6 +38,7 @@ export class HandlersConstruct extends Construct {
         environment: {
           USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
           CONDUCTORES_TABLE: props.driversTable.tableName,
+          JWT_SECRET: process.env.JWT_SECRET as string, // Agregado
         },
         bundling: { externalModules: ["@aws-sdk"] },
       }
@@ -51,6 +52,7 @@ export class HandlersConstruct extends Construct {
       environment: {
         USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
         RUTAS_TABLE: props.routesTable.tableName,
+        JWT_SECRET: process.env.JWT_SECRET as string, // Agregado
       },
       bundling: { externalModules: ["@aws-sdk"] },
     });
@@ -65,6 +67,7 @@ export class HandlersConstruct extends Construct {
         environment: {
           USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
           PARADAS_TABLE: props.paradasTable.tableName,
+          JWT_SECRET: process.env.JWT_SECRET as string, // Agregado
         },
         bundling: { externalModules: ["@aws-sdk"] },
       }
@@ -80,6 +83,7 @@ export class HandlersConstruct extends Construct {
         environment: {
           USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
           PARADAS_TABLE: props.paradasDeRutaTable.tableName,
+          JWT_SECRET: process.env.JWT_SECRET as string, // Agregado
         },
         bundling: { externalModules: ["@aws-sdk"] },
       }
@@ -92,6 +96,7 @@ export class HandlersConstruct extends Construct {
         USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
         TRIPS_TABLE: props.viajesTable.tableName,
         PARADAS_DE_RUTA_TABLE: props.paradasDeRutaTable.tableName, // Nuevo
+        JWT_SECRET: process.env.JWT_SECRET as string, // Agregado
       },
       bundling: { externalModules: ["@aws-sdk"] },
     });
@@ -107,6 +112,7 @@ export class HandlersConstruct extends Construct {
         environment: {
           USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
           USERS_TABLE: props.usersTable.tableName,
+          JWT_SECRET: process.env.JWT_SECRET as string, // Agregado
         },
         bundling: { externalModules: ["@aws-sdk"] },
       }
@@ -118,7 +124,7 @@ export class HandlersConstruct extends Construct {
       environment: {
         USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
         USERS_TABLE: props.usersTable.tableName,
-        JWT_SECRET: process.env.JWT_SECRET || "your_jwt_secret",
+        JWT_SECRET: process.env.JWT_SECRET as string,
       },
       bundling: { externalModules: ["@aws-sdk"] },
     });

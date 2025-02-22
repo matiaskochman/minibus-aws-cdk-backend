@@ -7,7 +7,7 @@ import * as jwt from "jsonwebtoken";
 // Se espera que el nombre de la tabla se configure en el entorno (ver userModel.ts)
 const USERS_TABLE = process.env.USERS_TABLE || "Users";
 // Se debe definir una variable de entorno JWT_SECRET para firmar los tokens
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
+const JWT_SECRET = process.env.JWT_SECRET as string;
 
 export const handler = async (
   event: APIGatewayProxyEvent

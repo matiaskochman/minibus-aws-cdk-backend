@@ -28,9 +28,14 @@ export const handler = async (
       body: JSON.stringify({ message: "No autorizado: token mal formado" }),
     };
   }
+
   try {
+    const secret = process.env.JWT_SECRET;
+    if (!secret) {
+      throw new Error("JWT_SECRET is not defined");
+    }
     // Se verifica el token con el mismo secreto utilizado en auth
-    jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret");
+    jwt.verify(token, secret);
   } catch (err) {
     return {
       statusCode: 401,
