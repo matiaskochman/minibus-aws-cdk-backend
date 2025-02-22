@@ -1,4 +1,5 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import * as jwt from "jsonwebtoken";
 import {
   createUser,
   getUser,
@@ -11,6 +12,31 @@ export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const { httpMethod, pathParameters, body } = event;
+
+  // Verificar que se incluya un header Authorization con formato "Bearer <token>"
+  const authHeader = event.headers.Authorization || event.headers.authorization;
+  if (!authHeader) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ message: "No autorizado: falta el token" }),
+    };
+  }
+  const token = authHeader.split(" ")[1]; // Se espera formato "Bearer <token>"
+  if (!token) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ message: "No autorizado: token mal formado" }),
+    };
+  }
+  try {
+    // Se verifica el token con el mismo secreto utilizado en auth
+    jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret");
+  } catch (err) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ message: "No autorizado: token inválido" }),
+    };
+  }
 
   try {
     switch (httpMethod) {

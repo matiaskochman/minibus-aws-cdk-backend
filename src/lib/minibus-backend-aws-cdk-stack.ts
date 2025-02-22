@@ -180,5 +180,25 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
       "DELETE",
       new apigateway.LambdaIntegration(handlers.usuariosHandler)
     );
+
+    const authResource = api.root.addResource("auth");
+    const signUpResource = authResource.addResource("sign-up");
+
+    signUpResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.authHandler)
+    );
+
+    const logInResource = authResource.addResource("log-in");
+    logInResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.authHandler)
+    );
+
+    const logOutResource = authResource.addResource("log-out");
+    logOutResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.authHandler)
+    );
   }
 }

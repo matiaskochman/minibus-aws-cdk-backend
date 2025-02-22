@@ -22,6 +22,7 @@ export class HandlersConstruct extends Construct {
   public readonly paradasDeRutaHandler: lambdaNode.NodejsFunction;
   public readonly viajesHandler: lambdaNode.NodejsFunction;
   public readonly usuariosHandler: lambdaNode.NodejsFunction;
+  public readonly authHandler: lambdaNode.NodejsFunction;
 
   constructor(scope: Construct, id: string, props: HandlersConstructProps) {
     super(scope, id);
@@ -110,7 +111,17 @@ export class HandlersConstruct extends Construct {
         bundling: { externalModules: ["@aws-sdk"] },
       }
     );
-
+    this.authHandler = new lambdaNode.NodejsFunction(this, "AuthHandler", {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, "../handlers/auth.ts"),
+      handler: "handler",
+      environment: {
+        USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
+        USERS_TABLE: props.usersTable.tableName,
+        JWT_SECRET: process.env.JWT_SECRET || "your_jwt_secret",
+      },
+      bundling: { externalModules: ["@aws-sdk"] },
+    });
     props.usersTable.grantReadWriteData(this.usuariosHandler);
     props.viajesTable.grantReadWriteData(this.viajesHandler);
     props.driversTable.grantReadWriteData(this.conductoresHandler);

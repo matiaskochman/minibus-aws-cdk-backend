@@ -1,16 +1,60 @@
 #!/bin/bash
+# Colores para mejorar la visibilidad de los logs
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # Sin color
 
-# Configuración base (ajustar según entorno)
 # Cargar la URL base desde un script externo
 source curl-scripts/set-API-URL.sh
+
+# Valores fijos
+USER_NAME="juan_perez"
+USER_EMAIL="juan@example.com"
+USER_PASSWORD="secreto123"
+
+sign_up() {
+  local telegram="@${USER_NAME}"
+  local telefono="123456789"
+  echo -e "${BLUE}🔹 Registrando usuario: ${YELLOW}${USER_NAME}${BLUE} (${YELLOW}${USER_EMAIL}${BLUE})${NC}"
+  local response=$(curl -s -X POST "$API_URL/auth/sign-up" \
+    -H "Content-Type: application/json" \
+    -d "{
+          \"username\": \"$USER_NAME\",
+          \"email\": \"$USER_EMAIL\",
+          \"password\": \"$USER_PASSWORD\",
+          \"telegram\": \"$telegram\",
+          \"telefono\": \"$telefono\"
+        }")
+  echo -e "${GREEN}📌 Respuesta de sign-up:${NC}"
+  echo "$response"
+}
+
+login() {
+  echo -e "${BLUE}🔹 Iniciando sesión para obtener JWT...${NC}"
+  LOGIN_RESPONSE=$(curl -s -X POST "$API_URL/auth/log-in" \
+    -H "Content-Type: application/json" \
+    -d "{
+         \"email\": \"$USER_EMAIL\",
+         \"password\": \"$USER_PASSWORD\"
+        }")
+  TOKEN=$(echo "$LOGIN_RESPONSE" | grep -o '"token":"[^"]*' | cut -d':' -f2 | tr -d '"')
+  if [ -z "$TOKEN" ]; then
+    echo -e "${RED}❌ Error: No se obtuvo el token de login${NC}"
+    exit 1
+  else
+    echo -e "${GREEN}🔑 Token obtenido: ${YELLOW}$TOKEN${NC}"
+  fi
+}
 
 # Endpoint base para usuarios
 USUARIOS_ENDPOINT="${API_URL}/usuarios"
 
-# Función para crear un usuario
 crear_usuario() {
-  echo "Creando usuario..."
+  echo -e "${BLUE}Creando usuario...${NC}"
   local response=$(curl -s -X POST -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
     -d '{
       "credentials": {
         "username": "juan_perez",
@@ -23,34 +67,28 @@ crear_usuario() {
       "estado": "Pendiente"
     }' \
     ${USUARIOS_ENDPOINT})
-
-  echo "Respuesta creación:"
+  echo -e "${GREEN}Respuesta creación:${NC}"
   echo "$response" | jq .
-
-  # Extraer ID del usuario creado
   local user_id=$(echo "$response" | jq -r '.id')
-  echo "ID Usuario creado: $user_id"
+  echo -e "${GREEN}ID Usuario creado: ${YELLOW}$user_id${NC}"
   echo "$user_id"
 }
 
-# Función para obtener todos los usuarios
 listar_usuarios() {
-  echo -e "\nListando todos los usuarios..."
-  curl -s -X GET ${USUARIOS_ENDPOINT} | jq .
+  echo -e "\n${BLUE}Listando todos los usuarios...${NC}"
+  curl -s -X GET -H "Authorization: Bearer $TOKEN" ${USUARIOS_ENDPOINT} | jq .
 }
 
-# Función para obtener un usuario por ID
 obtener_usuario() {
   local user_id=$1
-  echo -e "\nObteniendo usuario $user_id..."
-  curl -s -X GET ${USUARIOS_ENDPOINT}/${user_id} | jq .
+  echo -e "\n${BLUE}Obteniendo usuario ${YELLOW}$user_id...${NC}"
+  curl -s -X GET -H "Authorization: Bearer $TOKEN" ${USUARIOS_ENDPOINT}/${user_id} | jq .
 }
 
-# Función para actualizar un usuario
 actualizar_usuario() {
   local user_id=$1
-  echo -e "\nActualizando usuario $user_id..."
-  curl -s -X PUT -H "Content-Type: application/json" \
+  echo -e "\n${BLUE}Actualizando usuario ${YELLOW}$user_id...${NC}"
+  curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
     -d '{
       "estado": "Aprobado",
       "credentials": {
@@ -60,21 +98,21 @@ actualizar_usuario() {
     ${USUARIOS_ENDPOINT}/${user_id} | jq .
 }
 
-# Función para eliminar un usuario
 eliminar_usuario() {
   local user_id=$1
-  echo -e "\nEliminando usuario $user_id..."
-  curl -s -X DELETE ${USUARIOS_ENDPOINT}/${user_id}
+  echo -e "\n${BLUE}Eliminando usuario ${YELLOW}$user_id...${NC}"
+  curl -s -X DELETE -H "Authorization: Bearer $TOKEN" ${USUARIOS_ENDPOINT}/${user_id}
 }
 
-# Función para verificar si un usuario fue eliminado
 verificar_eliminacion() {
   local user_id=$1
-  echo -e "\nVerificando eliminación..."
-  curl -s -X GET ${USUARIOS_ENDPOINT}/${user_id} | jq .
+  echo -e "\n${BLUE}Verificando eliminación del usuario ${YELLOW}$user_id...${NC}"
+  curl -s -X GET -H "Authorization: Bearer $TOKEN" ${USUARIOS_ENDPOINT}/${user_id} | jq .
 }
 
-# Flujo de ejecución
+# Ejecutar el flujo completo
+sign_up
+login
 USER_ID=$(crear_usuario)
 listar_usuarios
 obtener_usuario "$USER_ID"

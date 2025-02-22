@@ -83,6 +83,477 @@
 
 /**********/
 
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/auth/functions.sh
+#!/bin/bash
+# Cargar la URL base desde un script externo
+source curl-scripts/set-API-URL.sh
+# Verificar que API_URL está disponible
+if [ -z "$API_URL" ]; then
+    echo "❌ Error: API_URL no está configurado. Revisa set-API-URL.sh"
+    exit 1
+fi
+# Variables globales para almacenar resultados
+USER_EMAIL=""
+USER_PASSWORD="Test1234!"
+USER_NAME=""
+TOKEN=""
+# Función para generar un email aleatorio
+generate_random_email() {
+  USER_EMAIL="user$RANDOM@example.com"
+}
+# Función para generar un nombre de usuario aleatorio
+generate_random_username() {
+  USER_NAME="user$RANDOM"
+}
+# Función para registrar un usuario
+sign_up() {
+  generate_random_username
+  generate_random_email
+  local telegram="@${USER_NAME}"
+  local telefono="123456789"
+  echo "🔹 Registrando usuario: $USER_NAME ($USER_EMAIL)"
+  local response=$(curl -s -X POST "$API_URL/auth/sign-up" \
+    -H "Content-Type: application/json" \
+    -d "{
+          \"username\": \"$USER_NAME\",
+          \"email\": \"$USER_EMAIL\",
+          \"password\": \"$USER_PASSWORD\",
+          \"telegram\": \"$telegram\",
+          \"telefono\": \"$telefono\"
+        }")
+  echo "📌 Respuesta de sign-up:"
+  echo "$response"
+}
+# Función para iniciar sesión
+log_in() {
+  echo "🔹 Iniciando sesión con: $USER_EMAIL"
+  local response=$(curl -s -X POST "$API_URL/auth/log-in" \
+    -H "Content-Type: application/json" \
+    -d "{
+          \"email\": \"$USER_EMAIL\",
+          \"password\": \"$USER_PASSWORD\"
+        }")
+  TOKEN=$(echo "$response" | grep -o '"token":"[^"]*' | cut -d':' -f2 | tr -d '"')
+  echo "📌 Respuesta de log-in:"
+  echo "$response"
+  if [ -n "$TOKEN" ]; then
+    echo "🔑 Token obtenido: $TOKEN"
+  else
+    echo "❌ Error al obtener el token."
+    exit 1
+  fi
+}
+# Función para cerrar sesión
+log_out() {
+  if [ -z "$TOKEN" ]; then
+    echo "❌ No se encontró un token activo. Inicia sesión primero."
+    exit 1
+  fi
+  echo "🔹 Cerrando sesión..."
+  local response=$(curl -s -X POST "$API_URL/auth/log-out" \
+    -H "Authorization: Bearer $TOKEN")
+  echo "📌 Respuesta de log-out:"
+  echo "$response"
+  # Limpiar variables
+  TOKEN=""
+  USER_EMAIL=""
+  USER_NAME=""
+}
+# Ejecutar todas las funciones automáticamente
+sign_up
+log_in
+log_out
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/set-API-URL.sh
+#!/bin/bash
+API_URL="https:
+echo "API_URL set to $API_URL"
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/test-apis.sh
+#!/bin/bash
+# Definir la URL base de la API
+source curl-scripts/set-API-URL.sh
+# Función para probar conductores
+test_conductores() {
+    echo -e "\nProbando POST /conductores"
+    CONDUCTOR_RESPONSE=$(curl -s -X POST "$API_URL/conductores" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "Usuario_ID": "12345",
+            "Foto_DNI": "url_foto_dni",
+            "Foto_VTV": "url_foto_vtv",
+            "Estado": "Pendiente"
+        }')
+    echo "Respuesta: $CONDUCTOR_RESPONSE"
+    # Extraer ID del conductor
+    CONDUCTOR_ID=$(echo "$CONDUCTOR_RESPONSE" | jq -r '.id')
+    echo ""
+    echo -e "\nProbando GET /conductores/$CONDUCTOR_ID"
+    curl -s -X GET "$API_URL/conductores/$CONDUCTOR_ID"
+    echo ""
+    echo "ID del conductor creado: $CONDUCTOR_ID"
+    echo ""
+    echo -e "\nProbando GET /conductores"
+    curl -s -X GET "$API_URL/conductores"
+    echo ""
+    echo -e "\nProbando PUT /conductores/$CONDUCTOR_ID"
+    curl -s -X PUT "$API_URL/conductores/$CONDUCTOR_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "Estado": "Aprobado"
+        }'
+    echo ""
+    echo -e "\nProbando DELETE /conductores/$CONDUCTOR_ID"
+    curl -s -X DELETE "$API_URL/conductores/$CONDUCTOR_ID"
+}
+# Función para probar rutas
+test_rutas() {
+    echo -e "\nProbando POST /rutas"
+    RUTA_RESPONSE=$(curl -s -X POST "$API_URL/rutas" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "conductorId": "12345",
+            "estado": "activa",
+            "paradasDeRuta": [
+                {
+                    "id": "",
+                    "parada": {
+                        "id": "",
+                        "nombre": "Parada 1",
+                        "direccion": "Av. Primera 123",
+                        "descripcion": "Parada inicial"
+                    },
+                    "posicion": 1,
+                    "horario": "08:00"
+                },
+                {
+                    "id": "",
+                    "parada": {
+                        "id": "",
+                        "nombre": "Parada 2",
+                        "direccion": "Av. Segunda 456",
+                        "descripcion": "Parada intermedia"
+                    },
+                    "posicion": 2,
+                    "horario": "10:00"
+                }
+            ]
+        }')
+    echo "Respuesta: $RUTA_RESPONSE"
+    echo ""
+    # Extraer ID de la ruta
+    RUTA_ID=$(echo "$RUTA_RESPONSE" | jq -r '.id')
+    echo "ID de la ruta creada: $RUTA_ID"
+    echo ""
+    echo -e "\nProbando GET /rutas"
+    curl -s -X GET "$API_URL/rutas"
+    echo ""
+    echo -e "\nProbando GET /rutas/$RUTA_ID"
+    curl -s -X GET "$API_URL/rutas/$RUTA_ID"
+    echo ""
+    echo -e "\nProbando PUT /rutas/$RUTA_ID"
+    curl -s -X PUT "$API_URL/rutas/$RUTA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "estado": "inactiva"
+        }'
+    echo ""
+    echo -e "\nProbando DELETE /rutas/$RUTA_ID"
+    curl -s -X DELETE "$API_URL/rutas/$RUTA_ID"
+    echo ""
+}
+# Función para probar paradas
+test_paradas() {
+    echo -e "\nProbando POST /paradas"
+    PARADA_RESPONSE=$(curl -s -X POST "$API_URL/paradas" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "id": "parada-123",
+            "nombre": "Parada Central",
+            "descripcion": "Parada principal en el centro",
+            "calle": "Av. Siempre Viva",
+            "numero": "742",
+            "localidad": "Springfield",
+            "codigoPostal": "12345",
+            "partido": "Capital",
+            "provincia": "Buenos Aires",
+            "latitud": -34.603722,
+            "longitud": -58.381592
+        }')
+    echo "Respuesta: $PARADA_RESPONSE"
+    # Extraer ID de la parada
+    PARADA_ID=$(echo "$PARADA_RESPONSE" | jq -r '.id')
+    echo -e "\nProbando GET /paradas/$PARADA_ID"
+    curl -s -X GET "$API_URL/paradas/$PARADA_ID"
+    echo ""
+    echo -e "\nProbando GET /paradas"
+    curl -s -X GET "$API_URL/paradas"
+    echo ""
+    echo -e "\nProbando PUT /paradas/$PARADA_ID"
+    curl -s -X PUT "$API_URL/paradas/$PARADA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "nombre": "Parada Central Actualizada",
+            "descripcion": "Parada principal actualizada",
+            "calle": "Av. Siempre Viva",
+            "numero": "742",
+            "localidad": "Springfield",
+            "codigoPostal": "12345",
+            "partido": "Capital",
+            "provincia": "Buenos Aires",
+            "latitud": -34.603722,
+            "longitud": -58.381592
+        }'
+    echo ""
+    echo -e "\nProbando DELETE /paradas/$PARADA_ID"
+    curl -s -X DELETE "$API_URL/paradas/$PARADA_ID"
+    echo ""
+}
+test_paradas_de_ruta() {
+    echo -e "\nProbando POST /paradasDeRuta"
+    PARADA_RESPONSE=$(curl -s -X POST "$API_URL/paradasDeRuta" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "parada": {
+                "id": "",
+                "nombre": "Parada Central",
+                "direccion": "Av. Siempre Viva 742",
+                "descripcion": "Parada principal en el centro"
+            },
+            "posicion": 1,
+            "horario": "07:30"
+        }')
+    echo "Respuesta: $PARADA_RESPONSE"
+    echo ""
+    # Extraer ID de la parada de ruta
+    PARADA_ID=$(echo "$PARADA_RESPONSE" | jq -r '.id')
+    echo "ID de la parada creada: $PARADA_ID"
+    echo ""
+    echo -e "\nProbando GET /paradasDeRuta"
+    curl -s -X GET "$API_URL/paradasDeRuta"
+    echo ""
+    echo -e "\nProbando GET /paradasDeRuta/$PARADA_ID"
+    curl -s -X GET "$API_URL/paradasDeRuta/$PARADA_ID"
+    echo ""
+    echo -e "\nProbando PUT /paradasDeRuta/$PARADA_ID"
+    curl -s -X PUT "$API_URL/paradasDeRuta/$PARADA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "horario": "08:15"
+        }'
+    echo ""
+    echo -e "\nProbando DELETE /paradasDeRuta/$PARADA_ID"
+    curl -s -X DELETE "$API_URL/paradasDeRuta/$PARADA_ID"
+    echo ""
+}
+# Función para agregar una parada a una ruta
+agregar_parada_a_ruta() {
+    echo -e "\nProbando agregar parada a ruta"
+    curl -s -X PUT "$API_URL/rutas/$RUTA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "paradasDeRuta": [
+                {
+                    "id": "",
+                    "parada": {
+                        "id": "",
+                        "nombre": "Nueva Parada",
+                        "direccion": "Calle 123",
+                        "descripcion": "Descripción opcional"
+                    },
+                    "posicion": 3,
+                    "horario": "08:30"
+                }
+            ]
+        }'
+    echo ""
+}
+# Función para eliminar una parada de una ruta
+eliminar_parada_de_ruta() {
+    echo -e "\nProbando eliminar parada de ruta"
+    curl -s -X PUT "$API_URL/rutas/$RUTA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "paradasDeRuta": [
+                {
+                    "id": "id-de-la-parada-a-eliminar"
+                }
+            ]
+        }'
+    echo ""
+}
+# Función para probar viajes
+test_viajes() {
+    echo -e "\nProbando POST /viajes"
+    VIAJE_RESPONSE=$(curl -s -X POST "$API_URL/viajes" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "conductorId": "12345",
+            "rutaId": "67890",
+            "estado": "programado",
+            "fechaHoraSalida": "2025-02-25T08:00:00Z",
+            "fechaHoraLlegada": "2025-02-25T10:00:00Z",
+            "capacidad": 20,
+            "pasajeros": []
+        }')
+    echo "Respuesta: $VIAJE_RESPONSE"
+    # Extraer ID del viaje
+    VIAJE_ID=$(echo "$VIAJE_RESPONSE" | jq -r '.id')
+    echo ""
+    echo -e "\nProbando GET /viajes/$VIAJE_ID"
+    curl -s -X GET "$API_URL/viajes/$VIAJE_ID"
+    echo ""
+    echo "ID del viaje creado: $VIAJE_ID"
+    echo ""
+    echo -e "\nProbando GET /viajes"
+    curl -s -X GET "$API_URL/viajes"
+    echo ""
+    echo -e "\nProbando PUT /viajes/$VIAJE_ID"
+    curl -s -X PUT "$API_URL/viajes/$VIAJE_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "estado": "en curso"
+        }'
+    echo ""
+    echo -e "\nProbando DELETE /viajes/$VIAJE_ID"
+    curl -s -X DELETE "$API_URL/viajes/$VIAJE_ID"
+    echo ""
+}
+# # Verificar que jq está instalado
+if ! command -v jq &> /dev/null
+then
+    echo "Error: jq no está instalado. Instálalo con 'sudo apt install jq' (Linux) o 'brew install jq' (Mac)."
+    exit 1
+fi
+# Ejecutar todas las pruebas
+# test_paradas
+# test_rutas
+test_paradas_de_ruta
+# test_conductores
+# agregar_parada_a_ruta
+# eliminar_parada_de_ruta
+# test_viajes
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/usuarios/crud.sh
+# #!/bin/bash
+# Configuración base (ajustar según entorno)
+# Cargar la URL base desde un script externo
+source curl-scripts/set-API-URL.sh
+USER_EMAIL="juan@example.com"
+USER_PASSWORD="secreto123"
+sign_up() {
+  local telegram="@${USER_NAME}"
+  local telefono="123456789"
+  echo "🔹 Registrando usuario: $USER_NAME ($USER_EMAIL)"
+  local response=$(curl -s -X POST "$API_URL/auth/sign-up" \
+    -H "Content-Type: application/json" \
+    -d "{
+          \"username\": \"$USER_NAME\",
+          \"email\": \"$USER_EMAIL\",
+          \"password\": \"$USER_PASSWORD\",
+          \"telegram\": \"$telegram\",
+          \"telefono\": \"$telefono\"
+        }")
+  echo "📌 Respuesta de sign-up:"
+  echo "$response"
+}
+# Función para iniciar sesión y obtener el JWT
+login() {
+  echo "🔹 Iniciando sesión para obtener JWT..."
+  LOGIN_RESPONSE=$(curl -s -X POST "$API_URL/auth/log-in" \
+    -H "Content-Type: application/json" \
+    -d "{
+         \"email\": \"$USER_EMAIL\",
+         \"password\": \"$USER_PASSWORD\"
+        }")
+  TOKEN=$(echo "$LOGIN_RESPONSE" | grep -o '"token":"[^"]*' | cut -d':' -f2 | tr -d '"')
+  if [ -z "$TOKEN" ]; then
+    echo "❌ Error: No se obtuvo el token de login"
+    exit 1
+  else
+    echo "🔑 Token obtenido: $TOKEN"
+  fi
+}
+# Endpoint base para usuarios
+USUARIOS_ENDPOINT="${API_URL}/usuarios"
+# Función para crear un usuario
+crear_usuario() {
+  echo "Creando usuario..."
+  local response=$(curl -s -X POST -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{
+      "credentials": {
+        "username": "juan_perez",
+        "email": "juan@example.com",
+        "password": "secreto123",
+        "telegram": "@juanp",
+        "telefono": "+5491112345678"
+      },
+      "rol": "Conductor",
+      "estado": "Pendiente"
+    }' \
+    ${USUARIOS_ENDPOINT})
+  echo "Respuesta creación:"
+  echo "$response" | jq .
+  # Extraer ID del usuario creado
+  local user_id=$(echo "$response" | jq -r '.id')
+  echo "ID Usuario creado: $user_id"
+  echo "$user_id"
+}
+# Función para obtener todos los usuarios
+listar_usuarios() {
+  echo -e "\nListando todos los usuarios..."
+  curl -s -X GET -H "Authorization: Bearer $TOKEN" ${USUARIOS_ENDPOINT} | jq .
+}
+# Función para obtener un usuario por ID
+obtener_usuario() {
+  local user_id=$1
+  echo -e "\nObteniendo usuario $user_id..."
+  curl -s -X GET -H "Authorization: Bearer $TOKEN" ${USUARIOS_ENDPOINT}/${user_id} | jq .
+}
+# Función para actualizar un usuario
+actualizar_usuario() {
+  local user_id=$1
+  echo -e "\nActualizando usuario $user_id..."
+  curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+    -d '{
+      "estado": "Aprobado",
+      "credentials": {
+        "telefono": "+5491122334455"
+      }
+    }' \
+    ${USUARIOS_ENDPOINT}/${user_id} | jq .
+}
+# Función para eliminar un usuario
+eliminar_usuario() {
+  local user_id=$1
+  echo -e "\nEliminando usuario $user_id..."
+  curl -s -X DELETE -H "Authorization: Bearer $TOKEN" ${USUARIOS_ENDPOINT}/${user_id}
+}
+# Función para verificar si un usuario fue eliminado
+verificar_eliminacion() {
+  local user_id=$1
+  echo -e "\nVerificando eliminación..."
+  curl -s -X GET -H "Authorization: Bearer $TOKEN" ${USUARIOS_ENDPOINT}/${user_id} | jq .
+}
+# Ejecutar el flujo completo
+sign_up
+login
+USER_ID=$(crear_usuario)
+listar_usuarios
+obtener_usuario "$USER_ID"
+actualizar_usuario "$USER_ID"
+eliminar_usuario "$USER_ID"
+verificar_eliminacion "$USER_ID"
+
+/**********/
+
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/bin/minibus-backend-aws-cdk.ts
 #!/usr/bin/env node
 import * as cdk from "aws-cdk-lib";
@@ -92,6 +563,138 @@ const app = new cdk.App();
 new MinibusBackendAwsCdkStack(app, "MinibusBackendAwsCdkStack", {
   /* For more information, see https:
 });
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/handlers/auth.ts
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import { createUser, listUsers } from "../models/userModel";
+const bcrypt = require("bcryptjs");
+import * as jwt from "jsonwebtoken";
+const USERS_TABLE = process.env.USERS_TABLE || "Users";
+const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
+export const handler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+  const path = event.path.toLowerCase();
+  if (event.httpMethod !== "POST") {
+    return {
+      statusCode: 405,
+      body: JSON.stringify({ message: "Método no permitido" }),
+    };
+  }
+  try {
+    if (path.endsWith("sign-up")) {
+      if (!event.body) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ message: "Cuerpo de solicitud faltante" }),
+        };
+      }
+      const data = JSON.parse(event.body);
+      const { username, email, password, telegram, telefono } = data;
+      if (!username || !email || !password) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ message: "Faltan campos obligatorios" }),
+        };
+      }
+      const users = await listUsers();
+      const existingUser = users.find(
+        (u) =>
+          u.credentials.email.toLowerCase() === email.toLowerCase() ||
+          u.credentials.username.toLowerCase() === username.toLowerCase()
+      );
+      if (existingUser) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ message: "El usuario ya existe" }),
+        };
+      }
+      const hashedPassword = await bcrypt.hash(password, 10);
+      const newUser = await createUser({
+        credentials: {
+          username,
+          email,
+          password: "", 
+          hashedPassword,
+          telegram: telegram || "",
+          telefono: telefono || "",
+        },
+        rol: "Conductor", 
+        estado: "Pendiente",
+        fechaCreacion: new Date().toISOString(),
+      });
+      return {
+        statusCode: 201,
+        body: JSON.stringify({
+          message: "Usuario creado exitosamente",
+          user: newUser,
+        }),
+      };
+    } else if (path.endsWith("log-in")) {
+      if (!event.body) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ message: "Cuerpo de solicitud faltante" }),
+        };
+      }
+      const data = JSON.parse(event.body);
+      const { email, password } = data;
+      if (!email || !password) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ message: "Faltan campos obligatorios" }),
+        };
+      }
+      const users = await listUsers();
+      const user = users.find(
+        (u) => u.credentials.email.toLowerCase() === email.toLowerCase()
+      );
+      if (!user) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ message: "Credenciales inválidas" }),
+        };
+      }
+      const validPassword = await bcrypt.compare(
+        password,
+        user.credentials.hashedPassword
+      );
+      if (!validPassword) {
+        return {
+          statusCode: 400,
+          body: JSON.stringify({ message: "Credenciales inválidas" }),
+        };
+      }
+      const token = jwt.sign(
+        { id: user.id, email: user.credentials.email, rol: user.rol },
+        JWT_SECRET,
+        { expiresIn: "1h" }
+      );
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: "Log in exitoso", token }),
+      };
+    } else if (path.endsWith("log-out")) {
+      return {
+        statusCode: 200,
+        body: JSON.stringify({ message: "Log out exitoso" }),
+      };
+    } else {
+      return {
+        statusCode: 404,
+        body: JSON.stringify({ message: "Ruta no encontrada" }),
+      };
+    }
+  } catch (error: any) {
+    console.error("Error en auth handler:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Error interno", error: error.message }),
+    };
+  }
+};
 
 /**********/
 
@@ -165,6 +768,104 @@ export const handler = async (
           };
         }
         await deleteConductor(pathParameters.id);
+        return { statusCode: 204, body: "" };
+      default:
+        return {
+          statusCode: 405,
+          body: JSON.stringify({ message: "Método no permitido" }),
+        };
+    }
+  } catch (error: any) {
+    console.error("Error:", error);
+    return {
+      statusCode: 500,
+      body: JSON.stringify({ message: "Error interno", error: error.message }),
+    };
+  }
+};
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/handlers/usuarios.ts
+import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
+import * as jwt from "jsonwebtoken";
+import {
+  createUser,
+  getUser,
+  updateUser,
+  deleteUser,
+  listUsers,
+} from "../models/userModel";
+export const handler = async (
+  event: APIGatewayProxyEvent
+): Promise<APIGatewayProxyResult> => {
+  const { httpMethod, pathParameters, body } = event;
+  const authHeader = event.headers.Authorization || event.headers.authorization;
+  if (!authHeader) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ message: "No autorizado: falta el token" }),
+    };
+  }
+  const token = authHeader.split(" ")[1]; 
+  if (!token) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ message: "No autorizado: token mal formado" }),
+    };
+  }
+  try {
+    jwt.verify(token, process.env.JWT_SECRET || "your_jwt_secret");
+  } catch (err) {
+    return {
+      statusCode: 401,
+      body: JSON.stringify({ message: "No autorizado: token inválido" }),
+    };
+  }
+  try {
+    switch (httpMethod) {
+      case "GET":
+        if (pathParameters?.id) {
+          const user = await getUser(pathParameters.id);
+          return user
+            ? { statusCode: 200, body: JSON.stringify(user) }
+            : {
+                statusCode: 404,
+                body: JSON.stringify({ message: "Usuario no encontrado" }),
+              };
+        } else {
+          const users = await listUsers();
+          return { statusCode: 200, body: JSON.stringify(users) };
+        }
+      case "POST":
+        if (!body) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ message: "Cuerpo de solicitud faltante" }),
+          };
+        }
+        const newUser = await createUser(JSON.parse(body));
+        return { statusCode: 201, body: JSON.stringify(newUser) };
+      case "PUT":
+        if (!pathParameters?.id || !body) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ message: "Falta ID o cuerpo de solicitud" }),
+          };
+        }
+        const updatedUser = await updateUser(
+          pathParameters.id,
+          JSON.parse(body)
+        );
+        return { statusCode: 200, body: JSON.stringify(updatedUser) };
+      case "DELETE":
+        if (!pathParameters?.id) {
+          return {
+            statusCode: 400,
+            body: JSON.stringify({ message: "Falta ID en la ruta" }),
+          };
+        }
+        await deleteUser(pathParameters.id);
         return { statusCode: 204, body: "" };
       default:
         return {
@@ -297,6 +998,7 @@ interface HandlersConstructProps {
   paradasTable: dynamodb.Table;
   paradasDeRutaTable: dynamodb.Table;
   viajesTable: dynamodb.Table;
+  usersTable: dynamodb.Table;
 }
 export class HandlersConstruct extends Construct {
   public readonly conductoresHandler: lambdaNode.NodejsFunction;
@@ -304,6 +1006,8 @@ export class HandlersConstruct extends Construct {
   public readonly paradasHandler: lambdaNode.NodejsFunction;
   public readonly paradasDeRutaHandler: lambdaNode.NodejsFunction;
   public readonly viajesHandler: lambdaNode.NodejsFunction;
+  public readonly usuariosHandler: lambdaNode.NodejsFunction;
+  public readonly authHandler: lambdaNode.NodejsFunction;
   constructor(scope: Construct, id: string, props: HandlersConstructProps) {
     super(scope, id);
     this.conductoresHandler = new lambdaNode.NodejsFunction(
@@ -369,6 +1073,32 @@ export class HandlersConstruct extends Construct {
       },
       bundling: { externalModules: ["@aws-sdk"] },
     });
+    this.usuariosHandler = new lambdaNode.NodejsFunction(
+      this,
+      "UsuariosHandler",
+      {
+        runtime: lambda.Runtime.NODEJS_18_X,
+        entry: path.join(__dirname, "../handlers/usuarios.ts"),
+        handler: "handler",
+        environment: {
+          USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
+          USERS_TABLE: props.usersTable.tableName,
+        },
+        bundling: { externalModules: ["@aws-sdk"] },
+      }
+    );
+    this.authHandler = new lambdaNode.NodejsFunction(this, "AuthHandler", {
+      runtime: lambda.Runtime.NODEJS_18_X,
+      entry: path.join(__dirname, "../handlers/auth.ts"),
+      handler: "handler",
+      environment: {
+        USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
+        USERS_TABLE: props.usersTable.tableName,
+        JWT_SECRET: process.env.JWT_SECRET || "your_jwt_secret",
+      },
+      bundling: { externalModules: ["@aws-sdk"] },
+    });
+    props.usersTable.grantReadWriteData(this.usuariosHandler);
     props.viajesTable.grantReadWriteData(this.viajesHandler);
     props.driversTable.grantReadWriteData(this.conductoresHandler);
     props.routesTable.grantReadWriteData(this.rutasHandler);
@@ -396,6 +1126,7 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
       paradasTable: database.paradasTable,
       paradasDeRutaTable: database.paradasDeRutaTable,
       viajesTable: database.viajesTable,
+      usersTable: database.usersTable,
     });
     const api = new apigateway.RestApi(this, "MinibusApi", {
       restApiName: "minibus-api",
@@ -520,6 +1251,44 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
       "DELETE",
       new apigateway.LambdaIntegration(handlers.viajesHandler)
     );
+    const usuariosResource = api.root.addResource("usuarios");
+    usuariosResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    usuariosResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    const usuarioResource = usuariosResource.addResource("{id}");
+    usuarioResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    usuarioResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    usuarioResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    const authResource = api.root.addResource("auth");
+    const signUpResource = authResource.addResource("sign-up");
+    signUpResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.authHandler)
+    );
+    const logInResource = authResource.addResource("log-in");
+    logInResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.authHandler)
+    );
+    const logOutResource = authResource.addResource("log-out");
+    logOutResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.authHandler)
+    );
   }
 }
 
@@ -624,6 +1393,102 @@ export const listConductores = async (): Promise<Conductor[]> => {
 
 /**********/
 
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/userModel.ts
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { v4 as uuidv4 } from "uuid";
+import { User } from "../types/user";
+const isLocal = process.env.USE_LOCALSTACK === "true";
+const dynamoEndpoint = process.env.DYNAMODB_ENDPOINT;
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  ...(isLocal && {
+    endpoint: dynamoEndpoint,
+    credentials: {
+      accessKeyId: "test",
+      secretAccessKey: "test",
+    },
+  }),
+});
+const docClient = DynamoDBDocument.from(ddbClient, {
+  marshallOptions: { removeUndefinedValues: true },
+});
+const TABLE_NAME = process.env.USERS_TABLE || "Users";
+export const createUser = async (userData: Omit<User, "id">): Promise<User> => {
+  const newUser: User = {
+    id: uuidv4(),
+    ...userData,
+  };
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: newUser,
+    })
+  );
+  return newUser;
+};
+export const getUser = async (id: string): Promise<User | null> => {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+  return (result.Item as User) || null;
+};
+export const updateUser = async (
+  id: string,
+  updateData: Partial<User>
+): Promise<User> => {
+  const updateExpressions = Object.keys(updateData).map(
+    (key) => `#${key} = :${key}`
+  );
+  const ExpressionAttributeNames = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`#${key}`]: key }),
+    {}
+  );
+  const ExpressionAttributeValues = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`:${key}`]: updateData[key as keyof User] }),
+    {}
+  );
+  const { Attributes } = await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    })
+  );
+  return Attributes as User;
+};
+export const deleteUser = async (id: string): Promise<void> => {
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+};
+export const listUsers = async (): Promise<User[]> => {
+  const result = await docClient.send(
+    new ScanCommand({
+      TableName: TABLE_NAME,
+    })
+  );
+  return result.Items as User[];
+};
+
+/**********/
+
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/types/conductor.ts
 export interface Conductor {
   id: string;
@@ -656,25 +1521,23 @@ export interface Minibus {
 import { UserCredentials } from "./userCredentials";
 export interface User {
   id: string;
-  userCredentials: UserCredentials;
+  credentials: UserCredentials;
   rol: "Conductor" | "Vendedor" | "Administrador";
-  estado: "Pendiente" | "Aprobado" | "Rechazado";
+  estado: "Activo" | "Inactivo" | "Pendiente";
+  fechaCreacion: string;
+  ultimaActualizacion?: string;
 }
 
 /**********/
 
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/types/userCredentials.ts
 export interface UserCredentials {
-  id: string;
-  usuario_ID: string;
   username: string;
   email: string;
-  telegram: string;
-  telefono: string;
   password: string;
-  hashedPasword: string;
-  rol: "Conductor" | "Vendedor" | "Administrador";
-  estado: "Pendiente" | "Aprobado" | "Rechazado";
+  hashedPassword: string;
+  telegram?: string;
+  telefono?: string;
 }
 
 /**********/
