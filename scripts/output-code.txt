@@ -83,13 +83,1214 @@
 
 /**********/
 
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/auth/auth.sh
+#!/bin/bash
+# Archivo: /curl-scripts/auth.sh
+# Descripción: Pruebas para el handler de autenticación utilizando common.sh
+source curl-scripts/set-API-URL.sh
+AUTH_ENDPOINT="$API_URL/auth"
+USER_NAME="matias"
+USER_EMAIL="matias@example.com"
+USER_PASSWORD="password123"
+# Función para registrar un usuario (opcional)
+sign_up() {
+  echo -e "${BLUE}🔹 Registrando usuario (sign-up)...${NC}"
+  local telegram="@${USER_NAME}"
+  local telefono="123456789"
+  local response=$(curl -s -X POST "$AUTH_ENDPOINT/sign-up" \
+    -H "Content-Type: application/json" \
+    -d "{
+          \"username\": \"${USER_NAME}\",
+          \"email\": \"${USER_EMAIL}\",
+          \"password\": \"${USER_PASSWORD}\",
+          \"telegram\": \"${telegram}\",
+          \"telefono\": \"${telefono}\"
+        }")
+  echo -e "${GREEN}📌 Respuesta de sign-up:${NC} $response"
+}
+# Función para iniciar sesión y obtener el JWT
+login() {
+  echo -e "${BLUE}🔹 Iniciando sesión para obtener JWT...${NC}"
+  local response=$(curl -s -X POST "$API_URL/auth/log-in" \
+    -H "Content-Type: application/json" \
+    -d "{
+          \"email\": \"${USER_EMAIL}\",
+          \"password\": \"${USER_PASSWORD}\"
+        }")
+  TOKEN=$(echo "$response" | grep -o '"token":"[^"]*' | cut -d':' -f2 | tr -d '"')
+  echo -e "${GREEN}📌 Respuesta de log-in:${NC} $response"
+  if [ -n "$TOKEN" ]; then
+    echo -e "${GREEN}🔑 Token obtenido: ${YELLOW}$TOKEN${NC}"
+  else
+    echo -e "${RED}❌ Error: No se obtuvo el token${NC}"
+    exit 1
+  fi
+}
+logout() {
+  echo -e "${BLUE}🔹 Realizando log-out...${NC}"
+  local response=$(curl -s -X POST "$AUTH_ENDPOINT/log-out" \
+    -H "Content-Type: application/json")
+  echo -e "${GREEN}📌 Respuesta de log-out:${NC} $response"
+}
+echo -e "${YELLOW}========== PRUEBAS PARA AUTH ==========${NC}"
+# Realiza el login (si no se ha ejecutado ya al hacer source)
+# Opcional: descomentar si se desea registrar el usuario
+sign_up
+login
+logout
+echo -e "${YELLOW}========== FIN PRUEBAS PARA AUTH ==========${NC}"
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/common.sh
+#!/bin/bash
+# Archivo: /curl-scripts/common.sh
+# Descripción: Funciones comunes para autenticación y logging
+# Colores para mejorar la visibilidad de los logs
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # Sin color
+# Cargar la URL base
+source curl-scripts/set-API-URL.sh
+# Variables globales para autenticación
+TOKEN=""
+# Variables para usuario (se usan para sign_up y login)
+USER_EMAIL="matias@example.com"
+USER_PASSWORD="password123"
+USER_NAME="matias"
+# Función para iniciar sesión y obtener el JWT
+login() {
+  echo -e "${BLUE}🔹 Iniciando sesión para obtener JWT...${NC}"
+  local response=$(curl -s -X POST "$API_URL/auth/log-in" \
+    -H "Content-Type: application/json" \
+    -d "{
+          \"email\": \"${USER_EMAIL}\",
+          \"password\": \"${USER_PASSWORD}\"
+        }")
+  echo -e "${GREEN}📌 Respuesta de log-in:${NC} $response"
+  # Extraer el token de la respuesta
+  TOKEN=$(echo "$response" | grep -o '"token":"[^"]*' | cut -d':' -f2 | tr -d '"')
+  if [[ -n "$TOKEN" ]]; then
+    echo -e "${GREEN}🔑 Token obtenido: ${YELLOW}$TOKEN${NC}"
+  else
+    echo -e "${RED}⚠️ No se obtuvo el token. Intentando registrarse...${NC}"
+    sign_up
+  fi
+}
+# Función para registrar un usuario y luego hacer login
+sign_up() {
+  echo -e "${BLUE}🔹 Registrando usuario (sign-up)...${NC}"
+  local telegram="@${USER_NAME}"
+  local telefono="123456789"
+  local response=$(curl -s -X POST "$API_URL/auth/sign-up" \
+    -H "Content-Type: application/json" \
+    -d "{
+          \"username\": \"${USER_NAME}\",
+          \"email\": \"${USER_EMAIL}\",
+          \"password\": \"${USER_PASSWORD}\",
+          \"telegram\": \"${telegram}\",
+          \"telefono\": \"${telefono}\"
+        }")
+  echo -e "${GREEN}📌 Respuesta de sign-up:${NC} $response"
+  # Verificar si la respuesta indica que el usuario fue creado
+  local success=$(echo "$response" | grep -o '"message":"Usuario creado exitosamente"')
+  if [[ -n "$success" ]]; then
+    echo -e "${GREEN}✅ Usuario registrado exitosamente. Procediendo con login...${NC}"
+    login  # Ejecutar login después del registro
+  else
+    echo -e "${RED}❌ Error al registrar usuario.${NC}"
+    exit 1
+  fi
+}
+# Ejecutar login al cargar el script
+login
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/conductores/crud.sh
+#!/bin/bash
+# Archivo: /curl-scripts/conductores.sh
+# Descripción: Pruebas para el handler de conductores utilizando common.sh
+source curl-scripts/common.sh
+CONDUCTORES_ENDPOINT="$API_URL/conductores"
+list_conductores() {
+  echo -e "${BLUE}🔹 Listando conductores...${NC}"
+  local response=$(curl -s -X GET "$CONDUCTORES_ENDPOINT" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de list conductores:${NC} $response"
+}
+create_conductor() {
+  echo -e "${BLUE}🔹 Creando un nuevo conductor...${NC}"
+  local response=$(curl -s -X POST "$CONDUCTORES_ENDPOINT" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{
+      "Usuario_ID": "user123",
+      "Estado": "Pendiente",
+      "Foto_DNI": null,
+      "Foto_VTV": null,
+      "Vendedor_ID": null
+    }')
+  echo -e "${GREEN}📌 Respuesta de create conductor:${NC} $response"
+  # Extraer el ID del conductor creado
+  local id=$(echo "$response" | jq -r '.id')
+  if [[ "$id" != "null" && -n "$id" ]]; then
+    echo -e "${GREEN}✅ Conductor creado con ID: ${id}${NC}"
+    echo "$id"
+  else
+    echo -e "${RED}❌ Error al obtener el ID del conductor creado.${NC}"
+    exit 1
+  fi
+}
+get_conductor() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Obteniendo conductor con ID: ${id}...${NC}"
+  local response=$(curl -s -X GET "$CONDUCTORES_ENDPOINT/$id" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de get conductor:${NC} $response"
+}
+update_conductor() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Actualizando conductor con ID: ${id}...${NC}"
+  local response=$(curl -s -X PUT "$CONDUCTORES_ENDPOINT/$id" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{
+      "Estado": "Aprobado",
+      "Foto_DNI": "nueva_foto_dni.jpg",
+      "Foto_VTV": "nueva_foto_vtv.jpg"
+    }')
+  echo -e "${GREEN}📌 Respuesta de update conductor:${NC} $response"
+}
+delete_conductor() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Eliminando conductor con ID: ${id}...${NC}"
+  local response=$(curl -s -X DELETE "$CONDUCTORES_ENDPOINT/$id" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de delete conductor:${NC} $response"
+}
+echo -e "${YELLOW}========== PRUEBAS PARA CONDUCTORES ==========${NC}"
+login
+CONDUCTOR_ID=$(create_conductor)
+list_conductores
+if [[ -n "$CONDUCTOR_ID" ]]; then
+  get_conductor "$CONDUCTOR_ID"
+  update_conductor "$CONDUCTOR_ID"
+  delete_conductor "$CONDUCTOR_ID"
+fi
+echo -e "${YELLOW}========== FIN PRUEBAS PARA CONDUCTORES ==========${NC}"
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/parada-de-ruta/crud.sh
+#!/bin/bash
+# Archivo: /curl-scripts/paradasDeRuta.sh
+# Descripción: Pruebas para el handler de paradas de ruta utilizando common.sh
+source curl-scripts/common.sh
+PARADAS_DE_RUTA_ENDPOINT="$API_URL/paradasDeRuta"
+list_paradas_de_ruta() {
+  echo -e "${BLUE}🔹 Listando paradas de ruta...${NC}"
+  local response=$(curl -s -X GET "$PARADAS_DE_RUTA_ENDPOINT" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de list paradas de ruta:${NC} $response"
+}
+create_parada_de_ruta() {
+  echo -e "${BLUE}🔹 Creando una nueva parada de ruta...${NC}"
+  local response=$(curl -s -X POST "$PARADAS_DE_RUTA_ENDPOINT" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{
+          "parada": "parada_id_example",
+          "posicion": 1,
+          "horario": "08:00"
+        }')
+  echo -e "${GREEN}📌 Respuesta de create parada de ruta:${NC} $response"
+  # Extraer el ID de la parada creada
+  local id=$(echo "$response" | jq -r '.id')
+  if [[ "$id" != "null" && -n "$id" ]]; then
+    echo -e "${GREEN}✅ Parada creada con ID: ${id}${NC}"
+    echo "$id"
+  else
+    echo -e "${RED}❌ Error al obtener el ID de la parada creada.${NC}"
+    exit 1
+  fi
+}
+get_parada_de_ruta() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Obteniendo parada de ruta con ID: ${id}...${NC}"
+  local response=$(curl -s -X GET "$PARADAS_DE_RUTA_ENDPOINT/$id" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de get parada de ruta:${NC} $response"
+}
+update_parada_de_ruta() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Actualizando parada de ruta con ID: ${id}...${NC}"
+  local response=$(curl -s -X PUT "$PARADAS_DE_RUTA_ENDPOINT/$id" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{
+          "posicion": 2,
+          "horario": "08:15"
+        }')
+  echo -e "${GREEN}📌 Respuesta de update parada de ruta:${NC} $response"
+}
+delete_parada_de_ruta() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Eliminando parada de ruta con ID: ${id}...${NC}"
+  local response=$(curl -s -X DELETE "$PARADAS_DE_RUTA_ENDPOINT/$id" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de delete parada de ruta:${NC} $response"
+}
+echo -e "${YELLOW}========== PRUEBAS PARA PARADAS DE RUTA ==========${NC}"
+login
+PR_ID=$(create_parada_de_ruta)
+list_paradas_de_ruta
+if [[ -n "$PR_ID" ]]; then
+  get_parada_de_ruta "$PR_ID"
+  update_parada_de_ruta "$PR_ID"
+  delete_parada_de_ruta "$PR_ID"
+fi
+echo -e "${YELLOW}========== FIN PRUEBAS PARA PARADAS DE RUTA ==========${NC}"
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/paradas/crud.sh
+#!/bin/bash
+# Archivo: /curl-scripts/paradas.sh
+# Descripción: Pruebas para el handler de paradas utilizando common.sh
+source curl-scripts/common.sh
+PARADAS_ENDPOINT="$API_URL/paradas"
+list_paradas() {
+  echo -e "${BLUE}🔹 Listando paradas...${NC}"
+  local response=$(curl -s -X GET "$PARADAS_ENDPOINT" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de list paradas:${NC} $response"
+}
+create_parada() {
+  echo -e "${BLUE}🔹 Creando una nueva parada...${NC}"
+  local response=$(curl -s -X POST "$PARADAS_ENDPOINT" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{
+          "nombre": "Parada 1",
+          "descripcion": "Parada principal",
+          "calle": "Av. Principal",
+          "numero": "123",
+          "localidad": "Ciudad",
+          "codigoPostal": "1000",
+          "partido": "Partido",
+          "provincia": "Provincia"
+        }')
+  echo -e "${GREEN}📌 Respuesta de create parada:${NC} $response"
+  # Extraer el ID de la parada creada
+  local id=$(echo "$response" | jq -r '.id')
+  if [[ "$id" != "null" && -n "$id" ]]; then
+    echo -e "${GREEN}✅ Parada creada con ID: ${id}${NC}"
+    echo "$id"
+  else
+    echo -e "${RED}❌ Error al obtener el ID de la parada creada.${NC}"
+    exit 1
+  fi
+}
+get_parada() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Obteniendo parada con ID: ${id}...${NC}"
+  local response=$(curl -s -X GET "$PARADAS_ENDPOINT/$id" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de get parada:${NC} $response"
+}
+update_parada() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Actualizando parada con ID: ${id}...${NC}"
+  local response=$(curl -s -X PUT "$PARADAS_ENDPOINT/$id" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{
+          "descripcion": "Descripción actualizada",
+          "calle": "Av. Secundaria",
+          "numero": "456"
+        }')
+  echo -e "${GREEN}📌 Respuesta de update parada:${NC} $response"
+}
+delete_parada() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Eliminando parada con ID: ${id}...${NC}"
+  local response=$(curl -s -X DELETE "$PARADAS_ENDPOINT/$id" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de delete parada:${NC} $response"
+}
+# 🔹 **Ejecución de pruebas**
+echo -e "${YELLOW}========== PRUEBAS PARA PARADAS ==========${NC}"
+login
+PARADA_ID=$(create_parada)
+list_paradas
+if [[ -n "$PARADA_ID" ]]; then
+  get_parada "$PARADA_ID"
+  update_parada "$PARADA_ID"
+  delete_parada "$PARADA_ID"
+fi
+echo -e "${YELLOW}========== FIN PRUEBAS PARA PARADAS ==========${NC}"
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/rutas/crud.sh
+#!/bin/bash
+# Archivo: /curl-scripts/rutas.sh
+# Descripción: Pruebas para el handler de rutas utilizando common.sh
+source curl-scripts/common.sh
+RUTAS_ENDPOINT="$API_URL/rutas"
+list_rutas() {
+  echo -e "${BLUE}🔹 Listando rutas...${NC}"
+  local response=$(curl -s -X GET "$RUTAS_ENDPOINT" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de list rutas:${NC} $response"
+}
+create_ruta() {
+  echo -e "${BLUE}🔹 Creando una nueva ruta...${NC}"
+  local response=$(curl -s -X POST "$RUTAS_ENDPOINT" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{
+          "conductorId": "conductor_id_example",
+          "paradasDeRuta": ["parada_ruta_id_1", "parada_ruta_id_2"],
+          "estado": "activa"
+        }')
+  echo -e "${GREEN}📌 Respuesta de create ruta:${NC} $response"
+  # Extraer el ID de la ruta creada
+  local id=$(echo "$response" | jq -r '.id')
+  if [[ "$id" != "null" && -n "$id" ]]; then
+    echo -e "${GREEN}✅ Ruta creada con ID: ${id}${NC}"
+    echo "$id"
+  else
+    echo -e "${RED}❌ Error al obtener el ID de la ruta creada.${NC}"
+    exit 1
+  fi
+}
+get_ruta() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Obteniendo ruta con ID: ${id}...${NC}"
+  local response=$(curl -s -X GET "$RUTAS_ENDPOINT/$id" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de get ruta:${NC} $response"
+}
+update_ruta() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Actualizando ruta con ID: ${id}...${NC}"
+  local response=$(curl -s -X PUT "$RUTAS_ENDPOINT/$id" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{
+          "estado": "inactiva",
+          "paradasDeRuta": ["parada_ruta_id_1", "parada_ruta_id_3"]
+        }')
+  echo -e "${GREEN}📌 Respuesta de update ruta:${NC} $response"
+}
+delete_ruta() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Eliminando ruta con ID: ${id}...${NC}"
+  local response=$(curl -s -X DELETE "$RUTAS_ENDPOINT/$id" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de delete ruta:${NC} $response"
+}
+# 🔹 **Ejecución de pruebas**
+echo -e "${YELLOW}========== PRUEBAS PARA RUTAS ==========${NC}"
+login
+RUTA_ID=$(create_ruta)
+list_rutas
+if [[ -n "$RUTA_ID" ]]; then
+  get_ruta "$RUTA_ID"
+  update_ruta "$RUTA_ID"
+  delete_ruta "$RUTA_ID"
+fi
+echo -e "${YELLOW}========== FIN PRUEBAS PARA RUTAS ==========${NC}"
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/set-API-URL.sh
+#!/bin/bash
+API_URL="https:
+echo "API_URL set to $API_URL"
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/test-apis.sh
+#!/bin/bash
+# Definir la URL base de la API
+source curl-scripts/set-API-URL.sh
+# Función para probar conductores
+test_conductores() {
+    echo -e "\nProbando POST /conductores"
+    CONDUCTOR_RESPONSE=$(curl -s -X POST "$API_URL/conductores" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "Usuario_ID": "12345",
+            "Foto_DNI": "url_foto_dni",
+            "Foto_VTV": "url_foto_vtv",
+            "Estado": "Pendiente"
+        }')
+    echo "Respuesta: $CONDUCTOR_RESPONSE"
+    # Extraer ID del conductor
+    CONDUCTOR_ID=$(echo "$CONDUCTOR_RESPONSE" | jq -r '.id')
+    echo ""
+    echo -e "\nProbando GET /conductores/$CONDUCTOR_ID"
+    curl -s -X GET "$API_URL/conductores/$CONDUCTOR_ID"
+    echo ""
+    echo "ID del conductor creado: $CONDUCTOR_ID"
+    echo ""
+    echo -e "\nProbando GET /conductores"
+    curl -s -X GET "$API_URL/conductores"
+    echo ""
+    echo -e "\nProbando PUT /conductores/$CONDUCTOR_ID"
+    curl -s -X PUT "$API_URL/conductores/$CONDUCTOR_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "Estado": "Aprobado"
+        }'
+    echo ""
+    echo -e "\nProbando DELETE /conductores/$CONDUCTOR_ID"
+    curl -s -X DELETE "$API_URL/conductores/$CONDUCTOR_ID"
+}
+# Función para probar rutas
+test_rutas() {
+    echo -e "\nProbando POST /rutas"
+    RUTA_RESPONSE=$(curl -s -X POST "$API_URL/rutas" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "conductorId": "12345",
+            "estado": "activa",
+            "paradasDeRuta": [
+                {
+                    "id": "",
+                    "parada": {
+                        "id": "",
+                        "nombre": "Parada 1",
+                        "direccion": "Av. Primera 123",
+                        "descripcion": "Parada inicial"
+                    },
+                    "posicion": 1,
+                    "horario": "08:00"
+                },
+                {
+                    "id": "",
+                    "parada": {
+                        "id": "",
+                        "nombre": "Parada 2",
+                        "direccion": "Av. Segunda 456",
+                        "descripcion": "Parada intermedia"
+                    },
+                    "posicion": 2,
+                    "horario": "10:00"
+                }
+            ]
+        }')
+    echo "Respuesta: $RUTA_RESPONSE"
+    echo ""
+    # Extraer ID de la ruta
+    RUTA_ID=$(echo "$RUTA_RESPONSE" | jq -r '.id')
+    echo "ID de la ruta creada: $RUTA_ID"
+    echo ""
+    echo -e "\nProbando GET /rutas"
+    curl -s -X GET "$API_URL/rutas"
+    echo ""
+    echo -e "\nProbando GET /rutas/$RUTA_ID"
+    curl -s -X GET "$API_URL/rutas/$RUTA_ID"
+    echo ""
+    echo -e "\nProbando PUT /rutas/$RUTA_ID"
+    curl -s -X PUT "$API_URL/rutas/$RUTA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "estado": "inactiva"
+        }'
+    echo ""
+    echo -e "\nProbando DELETE /rutas/$RUTA_ID"
+    curl -s -X DELETE "$API_URL/rutas/$RUTA_ID"
+    echo ""
+}
+# Función para probar paradas
+test_paradas() {
+    echo -e "\nProbando POST /paradas"
+    PARADA_RESPONSE=$(curl -s -X POST "$API_URL/paradas" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "id": "parada-123",
+            "nombre": "Parada Central",
+            "descripcion": "Parada principal en el centro",
+            "calle": "Av. Siempre Viva",
+            "numero": "742",
+            "localidad": "Springfield",
+            "codigoPostal": "12345",
+            "partido": "Capital",
+            "provincia": "Buenos Aires",
+            "latitud": -34.603722,
+            "longitud": -58.381592
+        }')
+    echo "Respuesta: $PARADA_RESPONSE"
+    # Extraer ID de la parada
+    PARADA_ID=$(echo "$PARADA_RESPONSE" | jq -r '.id')
+    echo -e "\nProbando GET /paradas/$PARADA_ID"
+    curl -s -X GET "$API_URL/paradas/$PARADA_ID"
+    echo ""
+    echo -e "\nProbando GET /paradas"
+    curl -s -X GET "$API_URL/paradas"
+    echo ""
+    echo -e "\nProbando PUT /paradas/$PARADA_ID"
+    curl -s -X PUT "$API_URL/paradas/$PARADA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "nombre": "Parada Central Actualizada",
+            "descripcion": "Parada principal actualizada",
+            "calle": "Av. Siempre Viva",
+            "numero": "742",
+            "localidad": "Springfield",
+            "codigoPostal": "12345",
+            "partido": "Capital",
+            "provincia": "Buenos Aires",
+            "latitud": -34.603722,
+            "longitud": -58.381592
+        }'
+    echo ""
+    echo -e "\nProbando DELETE /paradas/$PARADA_ID"
+    curl -s -X DELETE "$API_URL/paradas/$PARADA_ID"
+    echo ""
+}
+test_paradas_de_ruta() {
+    echo -e "\nProbando POST /paradasDeRuta"
+    PARADA_RESPONSE=$(curl -s -X POST "$API_URL/paradasDeRuta" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "parada": {
+                "id": "",
+                "nombre": "Parada Central",
+                "direccion": "Av. Siempre Viva 742",
+                "descripcion": "Parada principal en el centro"
+            },
+            "posicion": 1,
+            "horario": "07:30"
+        }')
+    echo "Respuesta: $PARADA_RESPONSE"
+    echo ""
+    # Extraer ID de la parada de ruta
+    PARADA_ID=$(echo "$PARADA_RESPONSE" | jq -r '.id')
+    echo "ID de la parada creada: $PARADA_ID"
+    echo ""
+    echo -e "\nProbando GET /paradasDeRuta"
+    curl -s -X GET "$API_URL/paradasDeRuta"
+    echo ""
+    echo -e "\nProbando GET /paradasDeRuta/$PARADA_ID"
+    curl -s -X GET "$API_URL/paradasDeRuta/$PARADA_ID"
+    echo ""
+    echo -e "\nProbando PUT /paradasDeRuta/$PARADA_ID"
+    curl -s -X PUT "$API_URL/paradasDeRuta/$PARADA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "horario": "08:15"
+        }'
+    echo ""
+    echo -e "\nProbando DELETE /paradasDeRuta/$PARADA_ID"
+    curl -s -X DELETE "$API_URL/paradasDeRuta/$PARADA_ID"
+    echo ""
+}
+# Función para agregar una parada a una ruta
+agregar_parada_a_ruta() {
+    echo -e "\nProbando agregar parada a ruta"
+    curl -s -X PUT "$API_URL/rutas/$RUTA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "paradasDeRuta": [
+                {
+                    "id": "",
+                    "parada": {
+                        "id": "",
+                        "nombre": "Nueva Parada",
+                        "direccion": "Calle 123",
+                        "descripcion": "Descripción opcional"
+                    },
+                    "posicion": 3,
+                    "horario": "08:30"
+                }
+            ]
+        }'
+    echo ""
+}
+# Función para eliminar una parada de una ruta
+eliminar_parada_de_ruta() {
+    echo -e "\nProbando eliminar parada de ruta"
+    curl -s -X PUT "$API_URL/rutas/$RUTA_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "paradasDeRuta": [
+                {
+                    "id": "id-de-la-parada-a-eliminar"
+                }
+            ]
+        }'
+    echo ""
+}
+# Función para probar viajes
+test_viajes() {
+    echo -e "\nProbando POST /viajes"
+    VIAJE_RESPONSE=$(curl -s -X POST "$API_URL/viajes" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "conductorId": "12345",
+            "rutaId": "67890",
+            "estado": "programado",
+            "fechaHoraSalida": "2025-02-25T08:00:00Z",
+            "fechaHoraLlegada": "2025-02-25T10:00:00Z",
+            "capacidad": 20,
+            "pasajeros": []
+        }')
+    echo "Respuesta: $VIAJE_RESPONSE"
+    # Extraer ID del viaje
+    VIAJE_ID=$(echo "$VIAJE_RESPONSE" | jq -r '.id')
+    echo ""
+    echo -e "\nProbando GET /viajes/$VIAJE_ID"
+    curl -s -X GET "$API_URL/viajes/$VIAJE_ID"
+    echo ""
+    echo "ID del viaje creado: $VIAJE_ID"
+    echo ""
+    echo -e "\nProbando GET /viajes"
+    curl -s -X GET "$API_URL/viajes"
+    echo ""
+    echo -e "\nProbando PUT /viajes/$VIAJE_ID"
+    curl -s -X PUT "$API_URL/viajes/$VIAJE_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "estado": "en curso"
+        }'
+    echo ""
+    echo -e "\nProbando DELETE /viajes/$VIAJE_ID"
+    curl -s -X DELETE "$API_URL/viajes/$VIAJE_ID"
+    echo ""
+}
+# # Verificar que jq está instalado
+if ! command -v jq &> /dev/null
+then
+    echo "Error: jq no está instalado. Instálalo con 'sudo apt install jq' (Linux) o 'brew install jq' (Mac)."
+    exit 1
+fi
+# Ejecutar todas las pruebas
+# test_paradas
+# test_rutas
+test_paradas_de_ruta
+# test_conductores
+# agregar_parada_a_ruta
+# eliminar_parada_de_ruta
+# test_viajes
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/usuarios/crud.sh
+#!/bin/bash
+# Archivo: /curl-scripts/usuarios.sh
+# Descripción: Pruebas para el handler de usuarios utilizando common.sh
+source curl-scripts/common.sh
+# source curl-scripts/set-API-URL.sh
+USUARIOS_ENDPOINT="$API_URL/usuarios"
+list_usuarios() {
+  # echo "${BLUE}🔹 Listando usuarios...${NC}"
+  echo "token: ${TOKEN}"
+  local response=$(curl -s -X GET "$USUARIOS_ENDPOINT" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de list usuarios:${NC} $response"
+}
+create_usuario() {
+  echo -e "${BLUE}🔹 Creando un nuevo usuario...${NC}"
+  local response=$(curl -s -X POST "$USUARIOS_ENDPOINT" \
+    -H "Content-Type: application/json" \
+    -d '{
+          "credentials": {
+            "username": "jane_doe",
+            "email": "jane@example.com",
+            "password": "password456",
+            "hashedPassword": "hashed_example",
+            "telegram": "@jane_doe",
+            "telefono": "987654321"
+          },
+          "rol": "Conductor",
+          "estado": "Pendiente",
+          "fechaCreacion": "2025-02-22T12:00:00.000Z"
+        }')
+  echo -e "${GREEN}📌 Respuesta de create usuario:${NC} $response"
+}
+get_usuario() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Obteniendo usuario con ID: ${id}...${NC}"
+  local response=$(curl -s -X GET "$USUARIOS_ENDPOINT/$id" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de get usuario:${NC} $response"
+}
+update_usuario() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Actualizando usuario con ID: ${id}...${NC}"
+  local response=$(curl -s -X PUT "$USUARIOS_ENDPOINT/$id" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{"estado": "Activo"}')
+  echo -e "${GREEN}📌 Respuesta de update usuario:${NC} $response"
+}
+delete_usuario() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Eliminando usuario con ID: ${id}...${NC}"
+  local response=$(curl -s -X DELETE "$USUARIOS_ENDPOINT/$id" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de delete usuario:${NC} $response"
+}
+echo -e "${YELLOW}========== PRUEBAS PARA USUARIOS ==========${NC}"
+create_usuario
+list_usuarios
+USUARIO_ID="usuario_id_example"  # Reemplaza con un ID real
+get_usuario "$USUARIO_ID"
+update_usuario "$USUARIO_ID"
+delete_usuario "$USUARIO_ID"
+echo -e "${YELLOW}========== FIN PRUEBAS PARA USUARIOS ==========${NC}"
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/usuarios/crud.sh.old
+#!/bin/bash
+# Colores para mejorar la visibilidad de los logs
+RED='\033[0;31m'
+GREEN='\033[0;32m'
+YELLOW='\033[0;33m'
+BLUE='\033[0;34m'
+NC='\033[0m' # Sin color
+# Cargar la URL base desde un script externo
+source curl-scripts/set-API-URL.sh
+# Valores fijos
+USER_NAME="juan_perez"
+USER_EMAIL="juan@example.com"
+USER_PASSWORD="secreto123"
+sign_up() {
+  local telegram="@${USER_NAME}"
+  local telefono="123456789"
+  echo -e "${BLUE}🔹 Registrando usuario: ${YELLOW}${USER_NAME}${BLUE} (${YELLOW}${USER_EMAIL}${BLUE})${NC}"
+  local response=$(curl -s -X POST "$API_URL/auth/sign-up" \
+    -H "Content-Type: application/json" \
+    -d "{
+          \"username\": \"$USER_NAME\",
+          \"email\": \"$USER_EMAIL\",
+          \"password\": \"$USER_PASSWORD\",
+          \"telegram\": \"$telegram\",
+          \"telefono\": \"$telefono\"
+        }")
+  echo -e "${GREEN}📌 Respuesta de sign-up:${NC}"
+  echo "$response"
+}
+login() {
+  echo -e "${BLUE}🔹 Iniciando sesión para obtener JWT...${NC}"
+  LOGIN_RESPONSE=$(curl -s -X POST "$API_URL/auth/log-in" \
+    -H "Content-Type: application/json" \
+    -d "{
+         \"email\": \"$USER_EMAIL\",
+         \"password\": \"$USER_PASSWORD\"
+        }")
+  TOKEN=$(echo "$LOGIN_RESPONSE" | grep -o '"token":"[^"]*' | cut -d':' -f2 | tr -d '"')
+  if [ -z "$TOKEN" ]; then
+    echo -e "${RED}❌ Error: No se obtuvo el token de login${NC}"
+    exit 1
+  else
+    echo -e "${GREEN}🔑 Token obtenido: ${YELLOW}$TOKEN${NC}"
+  fi
+}
+# Endpoint base para usuarios
+USUARIOS_ENDPOINT="${API_URL}/usuarios"
+crear_usuario() {
+  echo -e "${BLUE}Creando usuario...${NC}"
+  local response=$(curl -s -X POST -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{
+      "credentials": {
+        "username": "juan_perez",
+        "email": "juan@example.com",
+        "password": "secreto123",
+        "telegram": "@juanp",
+        "telefono": "+5491112345678"
+      },
+      "rol": "Conductor",
+      "estado": "Pendiente"
+    }' \
+    ${USUARIOS_ENDPOINT})
+  echo -e "${GREEN}Respuesta creación:${NC}"
+  echo "$response" | jq .
+  local user_id=$(echo "$response" | jq -r '.id')
+  echo -e "${GREEN}ID Usuario creado: ${YELLOW}$user_id${NC}"
+  echo "$user_id"
+}
+listar_usuarios() {
+  echo -e "\n${BLUE}Listando todos los usuarios...${NC}"
+  curl -s -X GET -H "Authorization: Bearer $TOKEN" ${USUARIOS_ENDPOINT} | jq .
+}
+obtener_usuario() {
+  local user_id=$1
+  echo -e "\n${BLUE}Obteniendo usuario ${YELLOW}$user_id...${NC}"
+  curl -s -X GET -H "Authorization: Bearer $TOKEN" ${USUARIOS_ENDPOINT}/${user_id} | jq .
+}
+actualizar_usuario() {
+  local user_id=$1
+  echo -e "\n${BLUE}Actualizando usuario ${YELLOW}$user_id...${NC}"
+  curl -s -X PUT -H "Content-Type: application/json" -H "Authorization: Bearer $TOKEN" \
+    -d '{
+      "estado": "Aprobado",
+      "credentials": {
+        "telefono": "+5491122334455"
+      }
+    }' \
+    ${USUARIOS_ENDPOINT}/${user_id} | jq .
+}
+eliminar_usuario() {
+  local user_id=$1
+  echo -e "\n${BLUE}Eliminando usuario ${YELLOW}$user_id...${NC}"
+  curl -s -X DELETE -H "Authorization: Bearer $TOKEN" ${USUARIOS_ENDPOINT}/${user_id}
+}
+verificar_eliminacion() {
+  local user_id=$1
+  echo -e "\n${BLUE}Verificando eliminación del usuario ${YELLOW}$user_id...${NC}"
+  curl -s -X GET -H "Authorization: Bearer $TOKEN" ${USUARIOS_ENDPOINT}/${user_id} | jq .
+}
+# Ejecutar el flujo completo
+sign_up
+login
+USER_ID=$(crear_usuario)
+listar_usuarios
+obtener_usuario "$USER_ID"
+actualizar_usuario "$USER_ID"
+eliminar_usuario "$USER_ID"
+verificar_eliminacion "$USER_ID"
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/viajes/crud.sh
+#!/bin/bash
+# Archivo: /curl-scripts/viajes.sh
+# Descripción: Pruebas para el handler de viajes utilizando common.sh
+source curl-scripts/common.sh
+VIAJES_ENDPOINT="$API_URL/viajes"
+list_viajes() {
+  echo -e "${BLUE}🔹 Listando todos los viajes...${NC}"
+  local response=$(curl -s -X GET "$VIAJES_ENDPOINT" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de list viajes:${NC} $response"
+}
+create_viaje() {
+  echo -e "${BLUE}🔹 Creando un nuevo viaje...${NC}"
+  local response=$(curl -s -X POST "$VIAJES_ENDPOINT" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{
+          "rutaId": "ruta_id_example",
+          "conductorId": "conductor_id_example",
+          "paradasDeRuta": ["parada_ruta_id_1", "parada_ruta_id_2"],
+          "estado": "programado"
+        }')
+  echo -e "${GREEN}📌 Respuesta de create viaje:${NC} $response"
+  # Extraer el ID del viaje creado
+  local id=$(echo "$response" | jq -r '.id')
+  if [[ "$id" != "null" && -n "$id" ]]; then
+    echo -e "${GREEN}✅ Viaje creado con ID: ${id}${NC}"
+    echo "$id"
+  else
+    echo -e "${RED}❌ Error al obtener el ID del viaje creado.${NC}"
+    exit 1
+  fi
+}
+get_viaje() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Obteniendo viaje con ID: ${id}...${NC}"
+  local response=$(curl -s -X GET "$VIAJES_ENDPOINT/$id" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de get viaje:${NC} $response"
+}
+update_viaje() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Actualizando viaje con ID: ${id}...${NC}"
+  local response=$(curl -s -X PUT "$VIAJES_ENDPOINT/$id" \
+    -H "Content-Type: application/json" \
+    -H "Authorization: Bearer $TOKEN" \
+    -d '{"estado": "en curso"}')
+  echo -e "${GREEN}📌 Respuesta de update viaje:${NC} $response"
+}
+delete_viaje() {
+  local id="$1"
+  echo -e "${BLUE}🔹 Eliminando viaje con ID: ${id}...${NC}"
+  local response=$(curl -s -X DELETE "$VIAJES_ENDPOINT/$id" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de delete viaje:${NC} $response"
+}
+get_viajes_por_conductor() {
+  local conductor_id="$1"
+  echo -e "${BLUE}🔹 Obteniendo viajes por conductor (ID: ${conductor_id})...${NC}"
+  local response=$(curl -s -X GET "$VIAJES_ENDPOINT?conductorId=${conductor_id}" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de viajes por conductor:${NC} $response"
+}
+get_viajes_por_ruta() {
+  local ruta_id="$1"
+  echo -e "${BLUE}🔹 Obteniendo viajes por ruta (ID: ${ruta_id})...${NC}"
+  local response=$(curl -s -X GET "$VIAJES_ENDPOINT?rutaId=${ruta_id}" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de viajes por ruta:${NC} $response"
+}
+# 🔹 **Ejecución de pruebas**
+echo -e "${YELLOW}========== PRUEBAS PARA VIAJES ==========${NC}"
+# Evitar login duplicado
+if [[ -z "$TOKEN" ]]; then
+  login
+fi
+list_viajes
+VIAJE_ID=$(create_viaje)
+if [[ -n "$VIAJE_ID" ]]; then
+  get_viaje "$VIAJE_ID"
+  update_viaje "$VIAJE_ID"
+  delete_viaje "$VIAJE_ID"
+fi
+get_viajes_por_conductor "conductor_id_example"
+get_viajes_por_ruta "ruta_id_example"
+echo -e "${YELLOW}========== FIN PRUEBAS PARA VIAJES ==========${NC}"
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/curl-scripts/viajes/crud.sh.old
+#!/bin/bash
+# Cargar la URL base de la API
+source curl-scripts/set-API-URL.sh
+# Variable global para almacenar el ID del viaje creado
+VIAJE_ID=""
+ruta_id="ruta-55555"
+conductor_id="conductor-1"
+crear_viaje() {
+    echo -e "\n🔹 Creando un nuevo viaje (POST /viajes)"
+    VIAJE_RESPONSE=$(curl -s -X POST "$API_URL/viajes" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "rutaId": "ruta-12345",
+            "conductorId": "conductor-67890",
+            "paradasDeRuta": [
+                {
+                    "id": "parada-001",
+                    "parada": {
+                        "id": "parada-001",
+                        "nombre": "Parada A",
+                        "direccion": "Calle 1"
+                    },
+                    "posicion": 1,
+                    "horario": "08:00"
+                },
+                {
+                    "id": "parada-002",
+                    "parada": {
+                        "id": "parada-002",
+                        "nombre": "Parada B",
+                        "direccion": "Calle 2"
+                    },
+                    "posicion": 2,
+                    "horario": "09:00"
+                }
+            ],
+            "estado": "programado",
+            "fechaInicio": "2025-02-25T08:00:00Z"
+        }')
+    echo "🔹 Respuesta: $VIAJE_RESPONSE"
+    # Extraer ID del viaje
+    VIAJE_ID=$(echo "$VIAJE_RESPONSE" | jq -r '.id')
+    if [ "$VIAJE_ID" == "null" ] || [ -z "$VIAJE_ID" ]; then
+        echo "❌ Error al crear el viaje."
+        exit 1
+    fi
+    echo "✅ Viaje creado con ID: $VIAJE_ID"
+}
+crear_tres_viajes_misma_ruta() {
+    for i in {1..3}; do
+        echo -e "\n🔹 Creando viaje $i con ruta ID $ruta_id (POST /viajes)"
+        VIAJE_RESPONSE=$(curl -s -X POST "$API_URL/viajes" \
+            -H "Content-Type: application/json" \
+            -d "{
+                \"rutaId\": \"$ruta_id\",
+                \"conductorId\": \"conductor-1\",
+                \"paradasDeRuta\": [
+                    {
+                        \"id\": \"parada-001\",
+                        \"parada\": {
+                            \"id\": \"parada-001\",
+                            \"nombre\": \"Parada A\",
+                            \"direccion\": \"Calle 1\"
+                        },
+                        \"posicion\": 1,
+                        \"horario\": \"08:00\"
+                    },
+                    {
+                        \"id\": \"parada-002\",
+                        \"parada\": {
+                            \"id\": \"parada-002\",
+                            \"nombre\": \"Parada B\",
+                            \"direccion\": \"Calle 2\"
+                        },
+                        \"posicion\": 2,
+                        \"horario\": \"09:00\"
+                    }
+                ],
+                \"estado\": \"programado\",
+                \"fechaInicio\": \"2025-02-$((24 + i))T08:00:00Z\"
+            }")
+        echo "🔹 Respuesta: $VIAJE_RESPONSE"
+        VIAJE_ID=$(echo "$VIAJE_RESPONSE" | jq -r '.id')
+        if [ "$VIAJE_ID" == "null" ] || [ -z "$VIAJE_ID" ]; then
+            echo "❌ Error al crear el viaje $i."
+            exit 1
+        fi
+        echo "✅ Viaje $i creado con ID: $VIAJE_ID"
+    done
+}
+obtener_viaje() {
+    if [ -z "$VIAJE_ID" ]; then
+        echo "❌ No hay un VIAJE_ID definido."
+        exit 1
+    fi
+    echo -e "\n🔹 Obteniendo viaje con ID $VIAJE_ID (GET /viajes/$VIAJE_ID)"
+    curl -s -X GET "$API_URL/viajes/$VIAJE_ID" | jq .
+}
+listar_viajes() {
+    echo -e "\n🔹 Listando todos los viajes (GET /viajes)"
+    curl -s -X GET "$API_URL/viajes" | jq .
+}
+# Uso: listar_viajes_por_ruta "ID_RUTA"
+listar_viajes_por_ruta() {
+    # local ruta_id="$1"
+    echo -e "\n🔹 Viajes de la ruta $ruta_id (GET /viajes?rutaId=$ruta_id)"
+    curl -s -X GET "$API_URL/viajes?rutaId=$ruta_id" | jq .
+}
+listar_viajes_por_conductor() {
+    # local ruta_id="$1"
+    echo -e "\n🔹 Viajes del conductor $conductor_id (GET viajes?conductorId=$conductor_id)"
+    curl -s -X GET "$API_URL/viajes?conductorId=$conductor_id" | jq .
+}
+actualizar_viaje() {
+    if [ -z "$VIAJE_ID" ]; then
+        echo "❌ No hay un VIAJE_ID definido."
+        exit 1
+    fi
+    echo -e "\n🔹 Actualizando el estado del viaje a 'en curso' (PUT /viajes/$VIAJE_ID)"
+    curl -s -X PUT "$API_URL/viajes/$VIAJE_ID" \
+        -H "Content-Type: application/json" \
+        -d '{
+            "estado": "en curso"
+        }' | jq .
+}
+eliminar_viaje() {
+    if [ -z "$VIAJE_ID" ]; then
+        echo "❌ No hay un VIAJE_ID definido."
+        exit 1
+    fi
+    echo -e "\n🔹 Eliminando viaje con ID $VIAJE_ID (DELETE /viajes/$VIAJE_ID)"
+    curl -s -X DELETE "$API_URL/viajes/$VIAJE_ID"
+    echo "✅ Viaje eliminado"
+}
+# Verificar que jq está instalado
+if ! command -v jq &> /dev/null
+then
+    echo "❌ Error: jq no está instalado. Instálalo con 'sudo apt install jq' (Linux) o 'brew install jq' (Mac)."
+    exit 1
+fi
+# Ejecutar todas las pruebas en orden
+# crear_viaje
+# obtener_viaje
+# listar_viajes
+crear_tres_viajes_misma_ruta
+listar_viajes_por_ruta
+listar_viajes_por_conductor
+# actualizar_viaje
+# eliminar_viaje
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/docker-compose.yml
+version: "3.8"
+services:
+  localstack:
+    image: localstack/localstack:latest
+    container_name: localstack
+    ports:
+      - "4566:4566" # Solo este puerto necesario
+    environment:
+      - SERVICES=lambda,apigateway,dynamodb,s3,ssm,cloudformation,iam
+      - DEBUG=1
+      - DEFAULT_REGION=us-east-1
+      - EDGE_PORT=4566
+      - AWS_ACCESS_KEY_ID=test
+      - AWS_SECRET_ACCESS_KEY=test
+    volumes:
+      - "/var/run/docker.sock:/var/run/docker.sock"
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/package.json
+{
+  "name": "minibus-backend-aws-cdk",
+  "version": "0.1.0",
+  "bin": {
+    "minibus-backend-aws-cdk": "bin/minibus-backend-aws-cdk.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "watch": "tsc -w",
+    "test": "jest",
+    "cdk": "cdk"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.147",
+    "@types/aws-sdk": "^0.0.42",
+    "@types/jest": "^29.5.14",
+    "@types/jsonwebtoken": "^9.0.9",
+    "@types/node": "22.7.9",
+    "@types/uuid": "^10.0.0",
+    "aws-cdk": "2.178.0",
+    "jest": "^29.7.0",
+    "source-map-support": "^0.5.21",
+    "ts-jest": "^29.2.5",
+    "ts-node": "^10.9.2",
+    "typescript": "~5.6.3"
+  },
+  "dependencies": {
+    "@aws-cdk/aws-lambda-nodejs": "^1.203.0",
+    "@aws-cdk/core": "^1.203.0",
+    "@aws-sdk/client-dynamodb": "^3.751.0",
+    "@aws-sdk/client-s3": "^3.740.0",
+    "@aws-sdk/lib-dynamodb": "^3.751.0",
+    "@aws-sdk/s3-request-presigner": "^3.740.0",
+    "@aws-sdk/util-dynamodb": "^3.738.0",
+    "aws-cdk-lib": "^2.178.0",
+    "bcryptjs": "^3.0.2",
+    "constructs": "^10.4.2",
+    "dotenv": "^16.4.7",
+    "esbuild": "^0.19.2",
+    "jsonwebtoken": "^9.0.2",
+    "uuid": "^11.1.0"
+  }
+}
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/bin/minibus-backend-aws-cdk.ts
+#!/usr/bin/env node
+import * as cdk from "aws-cdk-lib";
+import { MinibusBackendAwsCdkStack } from "../lib/minibus-backend-aws-cdk-stack";
+import "dotenv/config";
+const app = new cdk.App();
+new MinibusBackendAwsCdkStack(app, "MinibusBackendAwsCdkStack", {
+  /* For more information, see https:
+});
+
+/**********/
+
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/handlers/auth.ts
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import { createUser, listUsers } from "../models/userModel";
 const bcrypt = require("bcryptjs");
 import * as jwt from "jsonwebtoken";
 const USERS_TABLE = process.env.USERS_TABLE || "Users";
-const JWT_SECRET = process.env.JWT_SECRET || "your_jwt_secret";
+const JWT_SECRET = process.env.JWT_SECRET as string;
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
@@ -929,6 +2130,107 @@ export const handler = async (
 
 /**********/
 
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/lib/dynamodb-construct.ts
+import * as cdk from "aws-cdk-lib";
+import { Construct } from "constructs";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+export class DynamoDBConstruct extends Construct {
+  public readonly usersTable: dynamodb.Table;
+  public readonly driversTable: dynamodb.Table;
+  public readonly vendorsTable: dynamodb.Table;
+  public readonly routesTable: dynamodb.Table;
+  public readonly commissionsTable: dynamodb.Table;
+  public readonly paradasTable: dynamodb.Table; 
+  public readonly paradasDeRutaTable: dynamodb.Table; 
+  public readonly viajesTable: dynamodb.Table; 
+  constructor(scope: Construct, id: string) {
+    super(scope, id);
+    this.usersTable = new dynamodb.Table(this, "UsersTable", {
+      tableName: "Users",
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+    this.usersTable.addGlobalSecondaryIndex({
+      indexName: "UsersByRoleIndex",
+      partitionKey: { name: "role", type: dynamodb.AttributeType.STRING },
+    });
+    this.driversTable = new dynamodb.Table(this, "DriversTable", {
+      tableName: "Drivers",
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+    this.driversTable.addGlobalSecondaryIndex({
+      indexName: "DriverByUserIndex",
+      partitionKey: { name: "usuarioId", type: dynamodb.AttributeType.STRING },
+    });
+    this.driversTable.addGlobalSecondaryIndex({
+      indexName: "DriversByVendorIndex",
+      partitionKey: { name: "vendedorId", type: dynamodb.AttributeType.STRING },
+    });
+    this.routesTable = new dynamodb.Table(this, "RoutesTable", {
+      tableName: "Routes",
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+    this.routesTable.addGlobalSecondaryIndex({
+      indexName: "RoutesByConductorIndex",
+      partitionKey: {
+        name: "conductorId",
+        type: dynamodb.AttributeType.STRING,
+      },
+    });
+    this.paradasTable = new dynamodb.Table(this, "ParadasTable", {
+      tableName: "Paradas",
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+    this.paradasTable.addGlobalSecondaryIndex({
+      indexName: "ParadasByRutaIndex",
+      partitionKey: { name: "direccion", type: dynamodb.AttributeType.STRING },
+    });
+    this.paradasDeRutaTable = new dynamodb.Table(this, "ParadasDeRutaTable", {
+      tableName: "ParadasDeRuta",
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+    this.paradasDeRutaTable.addGlobalSecondaryIndex({
+      indexName: "ParadasPorLocalidadIndex",
+      partitionKey: { name: "localidad", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "provincia", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL, 
+    });
+    this.viajesTable = new dynamodb.Table(this, "ViajesTable", {
+      tableName: "Viajes",
+      partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
+      billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
+    });
+    this.viajesTable.addGlobalSecondaryIndex({
+      indexName: "ViajesByParadasIndex",
+      partitionKey: { name: "paradaId", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "createdAt", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.INCLUDE,
+      nonKeyAttributes: ["rutaId", "conductorId", "estado"],
+    });
+    this.viajesTable.addGlobalSecondaryIndex({
+      indexName: "ViajesPorRutaIndex",
+      partitionKey: { name: "rutaId", type: dynamodb.AttributeType.STRING },
+      sortKey: { name: "createdAt", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+    this.viajesTable.addGlobalSecondaryIndex({
+      indexName: "ViajesPorConductorIndex",
+      partitionKey: {
+        name: "conductorId",
+        type: dynamodb.AttributeType.STRING,
+      },
+      sortKey: { name: "createdAt", type: dynamodb.AttributeType.STRING },
+      projectionType: dynamodb.ProjectionType.ALL,
+    });
+  }
+}
+
+/**********/
+
 // File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/lib/handlers-construct.ts
 import * as cdk from "aws-cdk-lib";
 import { Construct } from "constructs";
@@ -1055,6 +2357,960 @@ export class HandlersConstruct extends Construct {
     props.paradasTable.grantReadWriteData(this.paradasHandler);
     props.paradasDeRutaTable.grantReadWriteData(this.paradasDeRutaHandler);
   }
+}
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/lib/minibus-backend-aws-cdk-stack.ts
+import * as cdk from "aws-cdk-lib";
+import { Construct } from "constructs";
+import { DynamoDBConstruct } from "./dynamodb-construct";
+import { HandlersConstruct } from "./handlers-construct";
+import * as apigateway from "aws-cdk-lib/aws-apigateway";
+export class MinibusBackendAwsCdkStack extends cdk.Stack {
+  constructor(scope: Construct, id: string, props?: cdk.StackProps) {
+    super(scope, id, props);
+    console.log("LOCALSTACK:", process.env.USE_LOCALSTACK);
+    const database = new DynamoDBConstruct(this, "Database");
+    const handlers = new HandlersConstruct(this, "Handlers", {
+      driversTable: database.driversTable,
+      routesTable: database.routesTable,
+      paradasTable: database.paradasTable,
+      paradasDeRutaTable: database.paradasDeRutaTable,
+      viajesTable: database.viajesTable,
+      usersTable: database.usersTable,
+    });
+    const api = new apigateway.RestApi(this, "MinibusApi", {
+      restApiName: "minibus-api",
+      deployOptions: {
+        stageName: process.env.USE_LOCALSTACK ? "dev" : "prod",
+      },
+      endpointConfiguration: {
+        types: [apigateway.EndpointType.REGIONAL],
+      },
+    });
+    const conductoresResource = api.root.addResource("conductores");
+    conductoresResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.conductoresHandler)
+    );
+    conductoresResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.conductoresHandler)
+    );
+    const conductorResource = conductoresResource.addResource("{id}");
+    conductorResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.conductoresHandler)
+    );
+    conductorResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(handlers.conductoresHandler)
+    );
+    conductorResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(handlers.conductoresHandler)
+    );
+    new cdk.CfnOutput(this, "ApiUrl", {
+      value: api.urlForPath("/conductores"),
+      description: "Endpoint de conductores",
+    });
+    const rutasResource = api.root.addResource("rutas");
+    rutasResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.rutasHandler)
+    );
+    rutasResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.rutasHandler)
+    );
+    const rutaResource = rutasResource.addResource("{id}");
+    rutaResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.rutasHandler)
+    );
+    rutaResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(handlers.rutasHandler)
+    );
+    rutaResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(handlers.rutasHandler)
+    );
+    const paradasResource = api.root.addResource("paradas");
+    paradasResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.paradasHandler)
+    );
+    paradasResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.paradasHandler)
+    );
+    const paradaResource = paradasResource.addResource("{id}");
+    paradaResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.paradasHandler)
+    );
+    paradaResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(handlers.paradasHandler)
+    );
+    paradaResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(handlers.paradasHandler)
+    );
+    const paradasDeRutaResource = api.root.addResource("paradasDeRuta");
+    paradasDeRutaResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler)
+    );
+    paradasDeRutaResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler)
+    );
+    const paradaDeRutaResource = paradasDeRutaResource.addResource("{id}");
+    paradaDeRutaResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler)
+    );
+    paradaDeRutaResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler)
+    );
+    paradaDeRutaResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(handlers.paradasDeRutaHandler)
+    );
+    const viajesResource = api.root.addResource("viajes");
+    viajesResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.viajesHandler)
+    );
+    viajesResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.viajesHandler)
+    );
+    const viajeResource = viajesResource.addResource("{id}");
+    viajeResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.viajesHandler)
+    );
+    viajeResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(handlers.viajesHandler)
+    );
+    viajeResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(handlers.viajesHandler)
+    );
+    const usuariosResource = api.root.addResource("usuarios");
+    usuariosResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    usuariosResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    const usuarioResource = usuariosResource.addResource("{id}");
+    usuarioResource.addMethod(
+      "GET",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    usuarioResource.addMethod(
+      "PUT",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    usuarioResource.addMethod(
+      "DELETE",
+      new apigateway.LambdaIntegration(handlers.usuariosHandler)
+    );
+    const authResource = api.root.addResource("auth");
+    const signUpResource = authResource.addResource("sign-up");
+    signUpResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.authHandler)
+    );
+    const logInResource = authResource.addResource("log-in");
+    logInResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.authHandler)
+    );
+    const logOutResource = authResource.addResource("log-out");
+    logOutResource.addMethod(
+      "POST",
+      new apigateway.LambdaIntegration(handlers.authHandler)
+    );
+  }
+}
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/conductorModel.ts
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { v4 as uuidv4 } from "uuid";
+import { Conductor } from "../types/conductor";
+const isLocal = process.env.USE_LOCALSTACK === "true";
+const dynamoEndpoint =
+  process.env.DYNAMODB_ENDPOINT || "http:
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  ...(isLocal && {
+    endpoint: dynamoEndpoint,
+    credentials: {
+      accessKeyId: "test",
+      secretAccessKey: "test",
+    },
+  }),
+});
+const docClient = DynamoDBDocument.from(ddbClient, {
+  marshallOptions: { removeUndefinedValues: true },
+});
+const TABLE_NAME = process.env.CONDUCTORES_TABLE || "Conductores";
+export const createConductor = async (
+  conductorData: Omit<Conductor, "id">
+): Promise<Conductor> => {
+  const newConductor: Conductor = {
+    id: uuidv4(),
+    ...conductorData,
+  };
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: newConductor,
+    })
+  );
+  return newConductor;
+};
+export const getConductor = async (id: string): Promise<Conductor | null> => {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+  return (result.Item as Conductor) || null;
+};
+export const updateConductor = async (
+  id: string,
+  updateData: Partial<Conductor>
+): Promise<Conductor> => {
+  const updateExpressions = Object.keys(updateData).map(
+    (key) => `#${key} = :${key}`
+  );
+  const ExpressionAttributeNames = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`#${key}`]: key }),
+    {}
+  );
+  const ExpressionAttributeValues = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`:${key}`]: updateData[key as keyof Conductor] }),
+    {}
+  );
+  const { Attributes } = await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    })
+  );
+  return Attributes as Conductor;
+};
+export const deleteConductor = async (id: string): Promise<void> => {
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+};
+export const listConductores = async (): Promise<Conductor[]> => {
+  const result = await docClient.send(
+    new ScanCommand({
+      TableName: TABLE_NAME,
+    })
+  );
+  return result.Items as Conductor[];
+};
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/paradaDeRuta.ts
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument, ScanCommandOutput } from "@aws-sdk/lib-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { v4 as uuidv4 } from "uuid";
+import { ParadaDeRuta } from "../types/paradaDeRuta";
+const isLocal = process.env.USE_LOCALSTACK === "true";
+const dynamoEndpoint =
+  process.env.DYNAMODB_ENDPOINT || "http:
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  ...(isLocal && {
+    endpoint: dynamoEndpoint,
+    credentials: {
+      accessKeyId: "test",
+      secretAccessKey: "test",
+    },
+  }),
+});
+const docClient = DynamoDBDocument.from(ddbClient, {
+  marshallOptions: { removeUndefinedValues: true },
+});
+const TABLE_NAME = process.env.PARADASDE_RUTA_TABLE || "ParadasDeRuta";
+export const createParadaDeRuta = async (
+  paradaData: Omit<ParadaDeRuta, "id">
+): Promise<ParadaDeRuta> => {
+  const newParada: ParadaDeRuta = {
+    id: uuidv4(),
+    ...paradaData,
+  };
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: newParada,
+    })
+  );
+  return newParada;
+};
+export const getParadaDeRuta = async (
+  id: string
+): Promise<ParadaDeRuta | null> => {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+  return (result.Item as ParadaDeRuta) || null;
+};
+export const updateParadaDeRuta = async (
+  id: string,
+  updateData: Partial<ParadaDeRuta>
+): Promise<ParadaDeRuta> => {
+  const updateExpressions = Object.keys(updateData).map(
+    (key) => `#${key} = :${key}`
+  );
+  const ExpressionAttributeNames = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`#${key}`]: key }),
+    {}
+  );
+  const ExpressionAttributeValues = Object.keys(updateData).reduce(
+    (acc, key) => ({
+      ...acc,
+      [`:${key}`]: updateData[key as keyof ParadaDeRuta],
+    }),
+    {}
+  );
+  const { Attributes } = await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    })
+  );
+  return Attributes as ParadaDeRuta;
+};
+export const deleteParadaDeRuta = async (id: string): Promise<void> => {
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+};
+export const listParadasDeRuta = async (): Promise<ParadaDeRuta[]> => {
+  const result = await docClient.send(
+    new ScanCommand({
+      TableName: TABLE_NAME,
+    })
+  );
+  return result.Items as ParadaDeRuta[];
+};
+export const deleteAllParadasDeRuta = async (): Promise<void> => {
+  let lastEvaluatedKey = null;
+  do {
+    const scanResult: ScanCommandOutput = await docClient.send(
+      new ScanCommand({
+        TableName: TABLE_NAME,
+        ExclusiveStartKey: lastEvaluatedKey || undefined,
+      })
+    );
+    if (scanResult.Items && scanResult.Items.length > 0) {
+      await Promise.all(
+        scanResult.Items.map((item) =>
+          docClient.send(
+            new DeleteCommand({
+              TableName: TABLE_NAME,
+              Key: { id: item.id },
+            })
+          )
+        )
+      );
+    }
+    lastEvaluatedKey = scanResult.LastEvaluatedKey;
+  } while (lastEvaluatedKey);
+};
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/paradaModel.ts
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { v4 as uuidv4 } from "uuid";
+import { Parada } from "../types/parada";
+const isLocal = process.env.USE_LOCALSTACK === "true";
+const dynamoEndpoint =
+  process.env.DYNAMODB_ENDPOINT || "http:
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  ...(isLocal && {
+    endpoint: dynamoEndpoint,
+    credentials: {
+      accessKeyId: "test",
+      secretAccessKey: "test",
+    },
+  }),
+});
+const docClient = DynamoDBDocument.from(ddbClient, {
+  marshallOptions: { removeUndefinedValues: true },
+});
+const TABLE_NAME = process.env.PARADAS_TABLE || "Paradas";
+export const createParada = async (
+  paradaData: Omit<Parada, "id">
+): Promise<Parada> => {
+  const newParada: Parada = {
+    id: uuidv4(),
+    ...paradaData,
+  };
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: newParada,
+    })
+  );
+  return newParada;
+};
+export const getParada = async (id: string): Promise<Parada | null> => {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+  return (result.Item as Parada) || null;
+};
+export const updateParada = async (
+  id: string,
+  updateData: Partial<Parada>
+): Promise<Parada> => {
+  const updateExpressions = Object.keys(updateData).map(
+    (key) => `#${key} = :${key}`
+  );
+  const ExpressionAttributeNames = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`#${key}`]: key }),
+    {}
+  );
+  const ExpressionAttributeValues = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`:${key}`]: updateData[key as keyof Parada] }),
+    {}
+  );
+  const { Attributes } = await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    })
+  );
+  return Attributes as Parada;
+};
+export const deleteParada = async (id: string): Promise<void> => {
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+};
+export const listParadas = async (): Promise<Parada[]> => {
+  const result = await docClient.send(
+    new ScanCommand({
+      TableName: TABLE_NAME,
+    })
+  );
+  return result.Items as Parada[];
+};
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/rutaModel.ts
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { v4 as uuidv4 } from "uuid";
+import { Ruta } from "../types/ruta";
+const isLocal = process.env.USE_LOCALSTACK === "true";
+const dynamoEndpoint =
+  process.env.DYNAMODB_ENDPOINT || "http:
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  ...(isLocal && {
+    endpoint: dynamoEndpoint,
+    credentials: {
+      accessKeyId: "test",
+      secretAccessKey: "test",
+    },
+  }),
+});
+const docClient = DynamoDBDocument.from(ddbClient, {
+  marshallOptions: { removeUndefinedValues: true },
+});
+const TABLE_NAME = process.env.RUTAS_TABLE || "Routes";
+export const createRuta = async (rutaData: Omit<Ruta, "id">): Promise<Ruta> => {
+  const newRuta: Ruta = {
+    id: uuidv4(),
+    ...rutaData,
+  };
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: newRuta,
+    })
+  );
+  return newRuta;
+};
+export const getRuta = async (id: string): Promise<Ruta | null> => {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+  return (result.Item as Ruta) || null;
+};
+export const updateRuta = async (
+  id: string,
+  updateData: Partial<Ruta>
+): Promise<Ruta> => {
+  const updateExpressions = Object.keys(updateData).map(
+    (key) => `#${key} = :${key}`
+  );
+  const ExpressionAttributeNames = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`#${key}`]: key }),
+    {}
+  );
+  const ExpressionAttributeValues = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`:${key}`]: updateData[key as keyof Ruta] }),
+    {}
+  );
+  const { Attributes } = await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    })
+  );
+  return Attributes as Ruta;
+};
+export const deleteRuta = async (id: string): Promise<void> => {
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+};
+export const listRutas = async (): Promise<Ruta[]> => {
+  const result = await docClient.send(
+    new ScanCommand({
+      TableName: TABLE_NAME,
+    })
+  );
+  return result.Items as Ruta[];
+};
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/userModel.ts
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument } from "@aws-sdk/lib-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { v4 as uuidv4 } from "uuid";
+import { User } from "../types/user";
+const isLocal = process.env.USE_LOCALSTACK === "true";
+const dynamoEndpoint = process.env.DYNAMODB_ENDPOINT;
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  ...(isLocal && {
+    endpoint: dynamoEndpoint,
+    credentials: {
+      accessKeyId: "test",
+      secretAccessKey: "test",
+    },
+  }),
+});
+const docClient = DynamoDBDocument.from(ddbClient, {
+  marshallOptions: { removeUndefinedValues: true },
+});
+const TABLE_NAME = process.env.USERS_TABLE || "Users";
+export const createUser = async (userData: Omit<User, "id">): Promise<User> => {
+  const newUser: User = {
+    id: uuidv4(),
+    ...userData,
+  };
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: newUser,
+    })
+  );
+  return newUser;
+};
+export const getUser = async (id: string): Promise<User | null> => {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+  return (result.Item as User) || null;
+};
+export const updateUser = async (
+  id: string,
+  updateData: Partial<User>
+): Promise<User> => {
+  const updateExpressions = Object.keys(updateData).map(
+    (key) => `#${key} = :${key}`
+  );
+  const ExpressionAttributeNames = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`#${key}`]: key }),
+    {}
+  );
+  const ExpressionAttributeValues = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`:${key}`]: updateData[key as keyof User] }),
+    {}
+  );
+  const { Attributes } = await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    })
+  );
+  return Attributes as User;
+};
+export const deleteUser = async (id: string): Promise<void> => {
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+};
+export const listUsers = async (): Promise<User[]> => {
+  const result = await docClient.send(
+    new ScanCommand({
+      TableName: TABLE_NAME,
+    })
+  );
+  return result.Items as User[];
+};
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/models/viajeModel.ts
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
+import { DynamoDBDocument, QueryCommand } from "@aws-sdk/lib-dynamodb";
+import {
+  PutCommand,
+  GetCommand,
+  UpdateCommand,
+  DeleteCommand,
+  ScanCommand,
+} from "@aws-sdk/lib-dynamodb";
+import { v4 as uuidv4 } from "uuid";
+import { Viaje } from "../types/viaje";
+const isLocal = process.env.USE_LOCALSTACK === "true";
+const dynamoEndpoint =
+  process.env.DYNAMODB_ENDPOINT || "http:
+const ddbClient = new DynamoDBClient({
+  region: "us-east-1",
+  ...(isLocal && {
+    endpoint: dynamoEndpoint,
+    credentials: {
+      accessKeyId: "test",
+      secretAccessKey: "test",
+    },
+  }),
+});
+const docClient = DynamoDBDocument.from(ddbClient, {
+  marshallOptions: { removeUndefinedValues: true },
+});
+const TABLE_NAME = process.env.TRIPS_TABLE || "Viajes";
+const PARADAS_DE_RUTA_TABLE =
+  process.env.PARADAS_DE_RUTA_TABLE || "ParadasDeRuta";
+export const createViaje = async (
+  viajeData: Omit<Viaje, "id">
+): Promise<Viaje> => {
+  if (!viajeData.paradasDeRuta || !Array.isArray(viajeData.paradasDeRuta)) {
+    throw new Error("ParadasDeRuta es requerido y debe ser un array");
+  }
+  const newViaje: Viaje = {
+    id: uuidv4(),
+    ...viajeData,
+    createdAt: new Date().toISOString(),
+  };
+  await docClient.send(
+    new PutCommand({
+      TableName: TABLE_NAME,
+      Item: newViaje,
+    })
+  );
+  return newViaje;
+};
+export const getViaje = async (id: string): Promise<Viaje | null> => {
+  const result = await docClient.send(
+    new GetCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+  return (result.Item as Viaje) || null;
+};
+export const updateViaje = async (
+  id: string,
+  updateData: Partial<Viaje>
+): Promise<Viaje> => {
+  const updateExpressions = Object.keys(updateData).map(
+    (key) => `#${key} = :${key}`
+  );
+  const ExpressionAttributeNames = Object.keys(updateData).reduce(
+    (acc, key) => ({ ...acc, [`#${key}`]: key }),
+    {}
+  );
+  const ExpressionAttributeValues = Object.keys(updateData).reduce(
+    (acc, key) => ({
+      ...acc,
+      [`:${key}`]: updateData[key as keyof Viaje],
+    }),
+    {}
+  );
+  const { Attributes } = await docClient.send(
+    new UpdateCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+      ExpressionAttributeNames,
+      ExpressionAttributeValues,
+      ReturnValues: "ALL_NEW",
+    })
+  );
+  return Attributes as Viaje;
+};
+export const deleteViaje = async (id: string): Promise<void> => {
+  await docClient.send(
+    new DeleteCommand({
+      TableName: TABLE_NAME,
+      Key: { id },
+    })
+  );
+};
+export const listViajes = async (): Promise<Viaje[]> => {
+  const result = await docClient.send(
+    new ScanCommand({
+      TableName: TABLE_NAME,
+    })
+  );
+  return result.Items as Viaje[];
+};
+export const getViajesPorRuta = async (rutaId: string): Promise<Viaje[]> => {
+  const result = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      IndexName: "ViajesPorRutaIndex",
+      KeyConditionExpression: "rutaId = :rutaId",
+      ExpressionAttributeValues: {
+        ":rutaId": rutaId,
+      },
+      ScanIndexForward: false, 
+    })
+  );
+  return result.Items as Viaje[];
+};
+export const getViajesPorConductor = async (
+  conductorId: string
+): Promise<Viaje[]> => {
+  const result = await docClient.send(
+    new QueryCommand({
+      TableName: TABLE_NAME,
+      IndexName: "ViajesPorConductorIndex",
+      KeyConditionExpression: "conductorId = :conductorId",
+      ExpressionAttributeValues: {
+        ":conductorId": conductorId,
+      },
+      ScanIndexForward: false, 
+    })
+  );
+  return result.Items as Viaje[];
+};
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/types/conductor.ts
+export interface Conductor {
+  id: string;
+  Usuario_ID: string;
+  Foto_DNI?: string | null;
+  Foto_VTV?: string | null;
+  Estado: "Pendiente" | "Aprobado" | "Rechazado";
+  Vendedor_ID?: string | null;
+}
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/types/minibus.ts
+export interface Minibus {
+  id: string;
+  usuario_ID: string;
+  marca: string;
+  modelo: string;
+  año: number;
+  patente: string;
+  foto_DNI?: string | null;
+  foto_VTV?: string | null;
+  estado: "Pendiente" | "Aprobado" | "Rechazado";
+  vendedor_ID?: string | null;
+}
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/types/parada.ts
+export interface Parada {
+  id: string;
+  nombre: string;
+  descripcion: string;
+  calle: string;
+  numero: string;
+  localidad: string;
+  codigoPostal: string;
+  partido: string;
+  provincia: string;
+  latitud?: number;
+  longitud?: number;
+}
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/types/paradaDeRuta.ts
+import { Parada } from "./parada";
+export interface ParadaDeRuta {
+  id: string;
+  parada: Parada;
+  posicion: number;
+  horario: string;
+}
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/types/ruta.ts
+import { ParadaDeRuta } from "./paradaDeRuta";
+export interface Ruta {
+  id: string;
+  conductorId: string;
+  estado: "activa" | "inactiva";
+  paradasDeRuta: ParadaDeRuta[];
+  createdAt: string;
+}
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/types/user.ts
+import { UserCredentials } from "./userCredentials";
+export interface User {
+  id: string;
+  credentials: UserCredentials;
+  rol: "Conductor" | "Vendedor" | "Administrador";
+  estado: "Activo" | "Inactivo" | "Pendiente";
+  fechaCreacion: string;
+  ultimaActualizacion?: string;
+}
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/types/userCredentials.ts
+export interface UserCredentials {
+  username: string;
+  email: string;
+  password: string;
+  hashedPassword: string;
+  telegram?: string;
+  telefono?: string;
+}
+
+/**********/
+
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/types/viaje.ts
+import { ParadaDeRuta } from "./paradaDeRuta";
+import { Ruta } from "./ruta";
+export interface Viaje {
+  id: string;
+  rutaId: string;
+  fecha: string;
+  conductorId: string;
+  estado: "Pendiente" | "Cancelado" | "Realizado" | "En curso" | "Pausado";
+  descripcion: string;
+  reventaActivada: boolean;
+  descuento: number;
+  ruta: Ruta;
+  paradasDeRuta: ParadaDeRuta[];
+  createdAt: string;
 }
 
 /**********/

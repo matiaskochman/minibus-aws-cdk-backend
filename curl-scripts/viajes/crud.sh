@@ -24,7 +24,19 @@ create_viaje() {
           "paradasDeRuta": ["parada_ruta_id_1", "parada_ruta_id_2"],
           "estado": "programado"
         }')
+
   echo -e "${GREEN}📌 Respuesta de create viaje:${NC} $response"
+
+  # Extraer el ID del viaje creado
+  local id=$(echo "$response" | jq -r '.id')
+
+  if [[ "$id" != "null" && -n "$id" ]]; then
+    echo -e "${GREEN}✅ Viaje creado con ID: ${id}${NC}"
+    echo "$id"
+  else
+    echo -e "${RED}❌ Error al obtener el ID del viaje creado.${NC}"
+    exit 1
+  fi
 }
 
 get_viaje() {
@@ -69,14 +81,24 @@ get_viajes_por_ruta() {
   echo -e "${GREEN}📌 Respuesta de viajes por ruta:${NC} $response"
 }
 
+# 🔹 **Ejecución de pruebas**
 echo -e "${YELLOW}========== PRUEBAS PARA VIAJES ==========${NC}"
-login
-create_viaje
+
+# Evitar login duplicado
+if [[ -z "$TOKEN" ]]; then
+  login
+fi
+
 list_viajes
-VIAJE_ID="viaje_id_example"  # Reemplaza con un ID real
-get_viaje "$VIAJE_ID"
-update_viaje "$VIAJE_ID"
-delete_viaje "$VIAJE_ID"
+VIAJE_ID=$(create_viaje)
+
+if [[ -n "$VIAJE_ID" ]]; then
+  get_viaje "$VIAJE_ID"
+  update_viaje "$VIAJE_ID"
+  delete_viaje "$VIAJE_ID"
+fi
+
 get_viajes_por_conductor "conductor_id_example"
 get_viajes_por_ruta "ruta_id_example"
+
 echo -e "${YELLOW}========== FIN PRUEBAS PARA VIAJES ==========${NC}"

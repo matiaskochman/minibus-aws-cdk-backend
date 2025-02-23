@@ -34,13 +34,19 @@ export const handler = async (
     if (!secret) {
       throw new Error("JWT_SECRET is not defined");
     }
-    // Se verifica el token con el mismo secreto utilizado en auth
     jwt.verify(token, secret);
   } catch (err) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ message: "No autorizado: token inválido" }),
-    };
+    if (
+      err instanceof jwt.JsonWebTokenError ||
+      err instanceof jwt.TokenExpiredError
+    ) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ message: "No autorizado: token inválido" }),
+      };
+    } else {
+      throw err; // O manejar como error 500
+    }
   }
   try {
     switch (httpMethod) {

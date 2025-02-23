@@ -8,6 +8,8 @@ import {
   getViajesPorRuta,
   getViajesPorConductor,
 } from "../models/viajeModel";
+import * as jwt from "jsonwebtoken";
+import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -35,13 +37,16 @@ export const handler = async (
     if (!secret) {
       throw new Error("JWT_SECRET is not defined");
     }
-    // Se verifica el token con el mismo secreto utilizado en auth
     jwt.verify(token, secret);
   } catch (err) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ message: "No autorizado: token inválido" }),
-    };
+    if (err instanceof JsonWebTokenError || err instanceof TokenExpiredError) {
+      return {
+        statusCode: 401,
+        body: JSON.stringify({ message: "No autorizado: token inválido" }),
+      };
+    } else {
+      throw err; // O manejar como error 500
+    }
   }
   try {
     switch (httpMethod) {
