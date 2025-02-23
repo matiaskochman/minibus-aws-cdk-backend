@@ -10,99 +10,89 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { Conductor } from "../types/conductor";
 
-const isLocal = process.env.USE_LOCALSTACK === "true";
-const dynamoEndpoint =
-  process.env.DYNAMODB_ENDPOINT || "http://localstack:4566";
+class ConductorModel {
+  private static isLocal = process.env.USE_LOCALSTACK === "true";
+  private static dynamoEndpoint =
+    process.env.DYNAMODB_ENDPOINT || "http://localstack:4566";
+  private static ddbClient = new DynamoDBClient({
+    region: "us-east-1",
+    ...(ConductorModel.isLocal && {
+      endpoint: ConductorModel.dynamoEndpoint,
+      credentials: { accessKeyId: "test", secretAccessKey: "test" },
+    }),
+  });
+  private static docClient = DynamoDBDocument.from(ConductorModel.ddbClient, {
+    marshallOptions: { removeUndefinedValues: true },
+  });
+  private static TABLE_NAME = process.env.CONDUCTORES_TABLE || "Conductores";
 
-const ddbClient = new DynamoDBClient({
-  region: "us-east-1",
-  ...(isLocal && {
-    endpoint: dynamoEndpoint,
-    credentials: {
-      accessKeyId: "test",
-      secretAccessKey: "test",
-    },
-  }),
-});
+  static async create(
+    conductorData: Omit<Conductor, "id">
+  ): Promise<Conductor> {
+    const newConductor: Conductor = {
+      id: uuidv4(),
+      ...conductorData,
+    };
+    await ConductorModel.docClient.send(
+      new PutCommand({
+        TableName: ConductorModel.TABLE_NAME,
+        Item: newConductor,
+      })
+    );
+    return newConductor;
+  }
 
-const docClient = DynamoDBDocument.from(ddbClient, {
-  marshallOptions: { removeUndefinedValues: true },
-});
+  static async get(id: string): Promise<Conductor | null> {
+    const result = await ConductorModel.docClient.send(
+      new GetCommand({ TableName: ConductorModel.TABLE_NAME, Key: { id } })
+    );
+    return (result.Item as Conductor) || null;
+  }
 
-const TABLE_NAME = process.env.CONDUCTORES_TABLE || "Conductores";
+  static async update(
+    id: string,
+    updateData: Partial<Conductor>
+  ): Promise<Conductor> {
+    const updateExpressions = Object.keys(updateData).map(
+      (key) => `#${key} = :${key}`
+    );
+    const ExpressionAttributeNames = Object.keys(updateData).reduce(
+      (acc, key) => ({ ...acc, [`#${key}`]: key }),
+      {}
+    );
+    const ExpressionAttributeValues = Object.keys(updateData).reduce(
+      (acc, key) => ({
+        ...acc,
+        [`:${key}`]: updateData[key as keyof Conductor],
+      }),
+      {}
+    );
 
-export const createConductor = async (
-  conductorData: Omit<Conductor, "id">
-): Promise<Conductor> => {
-  const newConductor: Conductor = {
-    id: uuidv4(),
-    ...conductorData,
-  };
+    const { Attributes } = await ConductorModel.docClient.send(
+      new UpdateCommand({
+        TableName: ConductorModel.TABLE_NAME,
+        Key: { id },
+        UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+        ExpressionAttributeNames,
+        ExpressionAttributeValues,
+        ReturnValues: "ALL_NEW",
+      })
+    );
+    return Attributes as Conductor;
+  }
 
-  await docClient.send(
-    new PutCommand({
-      TableName: TABLE_NAME,
-      Item: newConductor,
-    })
-  );
+  static async delete(id: string): Promise<void> {
+    await ConductorModel.docClient.send(
+      new DeleteCommand({ TableName: ConductorModel.TABLE_NAME, Key: { id } })
+    );
+  }
 
-  return newConductor;
-};
+  static async list(): Promise<Conductor[]> {
+    const result = await ConductorModel.docClient.send(
+      new ScanCommand({ TableName: ConductorModel.TABLE_NAME })
+    );
+    return result.Items as Conductor[];
+  }
+}
 
-export const getConductor = async (id: string): Promise<Conductor | null> => {
-  const result = await docClient.send(
-    new GetCommand({
-      TableName: TABLE_NAME,
-      Key: { id },
-    })
-  );
-  return (result.Item as Conductor) || null;
-};
-
-export const updateConductor = async (
-  id: string,
-  updateData: Partial<Conductor>
-): Promise<Conductor> => {
-  const updateExpressions = Object.keys(updateData).map(
-    (key) => `#${key} = :${key}`
-  );
-  const ExpressionAttributeNames = Object.keys(updateData).reduce(
-    (acc, key) => ({ ...acc, [`#${key}`]: key }),
-    {}
-  );
-  const ExpressionAttributeValues = Object.keys(updateData).reduce(
-    (acc, key) => ({ ...acc, [`:${key}`]: updateData[key as keyof Conductor] }),
-    {}
-  );
-
-  const { Attributes } = await docClient.send(
-    new UpdateCommand({
-      TableName: TABLE_NAME,
-      Key: { id },
-      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
-      ExpressionAttributeNames,
-      ExpressionAttributeValues,
-      ReturnValues: "ALL_NEW",
-    })
-  );
-
-  return Attributes as Conductor;
-};
-
-export const deleteConductor = async (id: string): Promise<void> => {
-  await docClient.send(
-    new DeleteCommand({
-      TableName: TABLE_NAME,
-      Key: { id },
-    })
-  );
-};
-
-export const listConductores = async (): Promise<Conductor[]> => {
-  const result = await docClient.send(
-    new ScanCommand({
-      TableName: TABLE_NAME,
-    })
-  );
-  return result.Items as Conductor[];
-};
+export default ConductorModel;

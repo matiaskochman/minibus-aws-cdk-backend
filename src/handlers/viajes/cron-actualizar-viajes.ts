@@ -6,7 +6,8 @@ import { Viaje } from "../../types/viaje";
 
 const TABLE_NAME = process.env.TRIPS_TABLE || "Viajes";
 const isLocal = process.env.USE_LOCALSTACK === "true";
-const dynamoEndpoint = process.env.DYNAMODB_ENDPOINT || "http://localhost:4566";
+const dynamoEndpoint =
+  process.env.DYNAMODB_ENDPOINT || "http://localstack:4566";
 const ddbClient = new DynamoDBClient({
   region: "us-east-1",
   ...(isLocal && {

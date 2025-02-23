@@ -1,110 +1,132 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import * as jwt from "jsonwebtoken";
-import {
-  createUser,
-  getUser,
-  updateUser,
-  deleteUser,
-  listUsers,
-} from "../models/userModel";
+import UserModel from "../models/userModel";
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const { httpMethod, pathParameters, body } = event;
+  const token = getTokenFromHeaders(event.headers);
 
-  // Verificar que se incluya un header Authorization con formato "Bearer <token>"
-  const authHeader = event.headers.Authorization || event.headers.authorization;
-  if (!authHeader) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ message: "No autorizado: falta el token" }),
-    };
-  }
-  const token = authHeader.split(" ")[1]; // Se espera formato "Bearer <token>"
-  if (!token) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ message: "No autorizado: token mal formado" }),
-    };
-  }
+  if (!token) return unauthorizedResponse("Falta el token");
 
   try {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new Error("JWT_SECRET is not defined");
-    }
-    jwt.verify(token, secret);
+    verifyToken(token);
   } catch (err) {
-    if (
-      err instanceof jwt.JsonWebTokenError ||
-      err instanceof jwt.TokenExpiredError
-    ) {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ message: "No autorizado: token inválido" }),
-      };
-    } else {
-      throw err; // O manejar como error 500
-    }
+    return handleJWTError(err);
   }
 
   try {
     switch (httpMethod) {
       case "GET":
-        if (pathParameters?.id) {
-          const user = await getUser(pathParameters.id);
-          return user
-            ? { statusCode: 200, body: JSON.stringify(user) }
-            : {
-                statusCode: 404,
-                body: JSON.stringify({ message: "Usuario no encontrado" }),
-              };
-        } else {
-          const users = await listUsers();
-          return { statusCode: 200, body: JSON.stringify(users) };
-        }
+        return handleGetRequest(pathParameters?.id);
       case "POST":
-        if (!body) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({ message: "Cuerpo de solicitud faltante" }),
-          };
-        }
-        const newUser = await createUser(JSON.parse(body));
-        return { statusCode: 201, body: JSON.stringify(newUser) };
+        return handlePostRequest(body);
       case "PUT":
-        if (!pathParameters?.id || !body) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({ message: "Falta ID o cuerpo de solicitud" }),
-          };
-        }
-        const updatedUser = await updateUser(
-          pathParameters.id,
-          JSON.parse(body)
-        );
-        return { statusCode: 200, body: JSON.stringify(updatedUser) };
+        return handlePutRequest(pathParameters?.id, body);
       case "DELETE":
-        if (!pathParameters?.id) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({ message: "Falta ID en la ruta" }),
-          };
-        }
-        await deleteUser(pathParameters.id);
-        return { statusCode: 204, body: "" };
+        return handleDeleteRequest(pathParameters?.id);
       default:
-        return {
-          statusCode: 405,
-          body: JSON.stringify({ message: "Método no permitido" }),
-        };
+        return methodNotAllowedResponse();
     }
   } catch (error: any) {
-    console.error("Error:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ message: "Error interno", error: error.message }),
-    };
+    return internalErrorResponse(error);
   }
 };
+
+const handleGetRequest = async (id?: string) => {
+  if (id) {
+    const user = await UserModel.get(id);
+    return user
+      ? successResponse(user)
+      : notFoundResponse("Usuario no encontrado");
+  }
+  const users = await UserModel.list();
+  return successResponse(users);
+};
+
+const handlePostRequest = async (body: string | null) => {
+  if (!body) return badRequestResponse("Cuerpo de solicitud faltante");
+
+  const newUser = await UserModel.create(JSON.parse(body));
+  return createdResponse(newUser);
+};
+
+const handlePutRequest = async (
+  id: string | undefined,
+  body: string | null
+) => {
+  if (!id || !body) return badRequestResponse("Falta ID o cuerpo");
+
+  const updatedUser = await UserModel.update(id, JSON.parse(body));
+  return successResponse(updatedUser);
+};
+
+const handleDeleteRequest = async (id: string | undefined) => {
+  if (!id) return badRequestResponse("Falta ID");
+
+  await UserModel.delete(id);
+  return noContentResponse();
+};
+
+// Reutilizar las mismas funciones helper
+const getTokenFromHeaders = (headers: any) => {
+  const authHeader = headers?.Authorization || headers?.authorization;
+  return authHeader?.split(" ")[1];
+};
+
+const verifyToken = (token: string) => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT_SECRET no está definido");
+  jwt.verify(token, secret);
+};
+
+const unauthorizedResponse = (message: string) => ({
+  statusCode: 401,
+  body: JSON.stringify({ message: `No autorizado: ${message}` }),
+});
+
+const handleJWTError = (err: any) => {
+  if (
+    err instanceof jwt.JsonWebTokenError ||
+    err instanceof jwt.TokenExpiredError
+  ) {
+    return unauthorizedResponse("token inválido");
+  }
+  throw err;
+};
+
+const successResponse = (data: any) => ({
+  statusCode: 200,
+  body: JSON.stringify(data),
+});
+
+const createdResponse = (data: any) => ({
+  statusCode: 201,
+  body: JSON.stringify(data),
+});
+
+const noContentResponse = () => ({
+  statusCode: 204,
+  body: "",
+});
+
+const badRequestResponse = (message: string) => ({
+  statusCode: 400,
+  body: JSON.stringify({ message }),
+});
+
+const notFoundResponse = (message: string) => ({
+  statusCode: 404,
+  body: JSON.stringify({ message }),
+});
+
+const methodNotAllowedResponse = () => ({
+  statusCode: 405,
+  body: JSON.stringify({ message: "Método no permitido" }),
+});
+
+const internalErrorResponse = (error: any) => ({
+  statusCode: 500,
+  body: JSON.stringify({ message: "Error interno", error: error.message }),
+});

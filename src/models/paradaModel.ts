@@ -10,99 +10,81 @@ import {
 import { v4 as uuidv4 } from "uuid";
 import { Parada } from "../types/parada";
 
-const isLocal = process.env.USE_LOCALSTACK === "true";
-const dynamoEndpoint =
-  process.env.DYNAMODB_ENDPOINT || "http://localstack:4566";
+class ParadaModel {
+  private static isLocal = process.env.USE_LOCALSTACK === "true";
+  private static dynamoEndpoint =
+    process.env.DYNAMODB_ENDPOINT || "http://localstack:4566";
+  private static ddbClient = new DynamoDBClient({
+    region: "us-east-1",
+    ...(ParadaModel.isLocal && {
+      endpoint: ParadaModel.dynamoEndpoint,
+      credentials: { accessKeyId: "test", secretAccessKey: "test" },
+    }),
+  });
+  private static docClient = DynamoDBDocument.from(ParadaModel.ddbClient, {
+    marshallOptions: { removeUndefinedValues: true },
+  });
+  private static TABLE_NAME = process.env.PARADAS_TABLE || "Paradas";
 
-const ddbClient = new DynamoDBClient({
-  region: "us-east-1",
-  ...(isLocal && {
-    endpoint: dynamoEndpoint,
-    credentials: {
-      accessKeyId: "test",
-      secretAccessKey: "test",
-    },
-  }),
-});
+  static async create(paradaData: Omit<Parada, "id">): Promise<Parada> {
+    const newParada: Parada = {
+      id: uuidv4(),
+      ...paradaData,
+    };
+    await ParadaModel.docClient.send(
+      new PutCommand({ TableName: ParadaModel.TABLE_NAME, Item: newParada })
+    );
+    return newParada;
+  }
 
-const docClient = DynamoDBDocument.from(ddbClient, {
-  marshallOptions: { removeUndefinedValues: true },
-});
+  static async get(id: string): Promise<Parada | null> {
+    const result = await ParadaModel.docClient.send(
+      new GetCommand({ TableName: ParadaModel.TABLE_NAME, Key: { id } })
+    );
+    return (result.Item as Parada) || null;
+  }
 
-const TABLE_NAME = process.env.PARADAS_TABLE || "Paradas";
+  static async update(
+    id: string,
+    updateData: Partial<Parada>
+  ): Promise<Parada> {
+    const updateExpressions = Object.keys(updateData).map(
+      (key) => `#${key} = :${key}`
+    );
+    const ExpressionAttributeNames = Object.keys(updateData).reduce(
+      (acc, key) => ({ ...acc, [`#${key}`]: key }),
+      {}
+    );
+    const ExpressionAttributeValues = Object.keys(updateData).reduce(
+      (acc, key) => ({ ...acc, [`:${key}`]: updateData[key as keyof Parada] }),
+      {}
+    );
 
-export const createParada = async (
-  paradaData: Omit<Parada, "id">
-): Promise<Parada> => {
-  const newParada: Parada = {
-    id: uuidv4(),
-    ...paradaData,
-  };
+    const { Attributes } = await ParadaModel.docClient.send(
+      new UpdateCommand({
+        TableName: ParadaModel.TABLE_NAME,
+        Key: { id },
+        UpdateExpression: `SET ${updateExpressions.join(", ")}`,
+        ExpressionAttributeNames,
+        ExpressionAttributeValues,
+        ReturnValues: "ALL_NEW",
+      })
+    );
+    return Attributes as Parada;
+  }
 
-  await docClient.send(
-    new PutCommand({
-      TableName: TABLE_NAME,
-      Item: newParada,
-    })
-  );
+  static async delete(id: string): Promise<void> {
+    await ParadaModel.docClient.send(
+      new DeleteCommand({ TableName: ParadaModel.TABLE_NAME, Key: { id } })
+    );
+  }
 
-  return newParada;
-};
+  static async list(): Promise<Parada[]> {
+    const result = await ParadaModel.docClient.send(
+      new ScanCommand({ TableName: ParadaModel.TABLE_NAME })
+    );
+    return result.Items as Parada[];
+  }
+}
 
-export const getParada = async (id: string): Promise<Parada | null> => {
-  const result = await docClient.send(
-    new GetCommand({
-      TableName: TABLE_NAME,
-      Key: { id },
-    })
-  );
-  return (result.Item as Parada) || null;
-};
-
-export const updateParada = async (
-  id: string,
-  updateData: Partial<Parada>
-): Promise<Parada> => {
-  const updateExpressions = Object.keys(updateData).map(
-    (key) => `#${key} = :${key}`
-  );
-  const ExpressionAttributeNames = Object.keys(updateData).reduce(
-    (acc, key) => ({ ...acc, [`#${key}`]: key }),
-    {}
-  );
-  const ExpressionAttributeValues = Object.keys(updateData).reduce(
-    (acc, key) => ({ ...acc, [`:${key}`]: updateData[key as keyof Parada] }),
-    {}
-  );
-
-  const { Attributes } = await docClient.send(
-    new UpdateCommand({
-      TableName: TABLE_NAME,
-      Key: { id },
-      UpdateExpression: `SET ${updateExpressions.join(", ")}`,
-      ExpressionAttributeNames,
-      ExpressionAttributeValues,
-      ReturnValues: "ALL_NEW",
-    })
-  );
-
-  return Attributes as Parada;
-};
-
-export const deleteParada = async (id: string): Promise<void> => {
-  await docClient.send(
-    new DeleteCommand({
-      TableName: TABLE_NAME,
-      Key: { id },
-    })
-  );
-};
-
-export const listParadas = async (): Promise<Parada[]> => {
-  const result = await docClient.send(
-    new ScanCommand({
-      TableName: TABLE_NAME,
-    })
-  );
-  return result.Items as Parada[];
-};
+export default ParadaModel;

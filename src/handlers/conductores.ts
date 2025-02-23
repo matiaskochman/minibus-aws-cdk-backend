@@ -1,126 +1,142 @@
-// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/handlers/conductores.ts
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import * as jwt from "jsonwebtoken";
-import {
-  createConductor,
-  getConductor,
-  updateConductor,
-  deleteConductor,
-  listConductores,
-} from "../models/conductorModel";
+import ConductorModel from "../models/conductorModel";
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const { httpMethod, pathParameters, body } = event;
-  // Verificar que se incluya un header Authorization con formato "Bearer <token>"
-  const authHeader = event.headers.Authorization || event.headers.authorization;
-  if (!authHeader) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ message: "No autorizado: falta el token" }),
-    };
-  }
-  const token = authHeader.split(" ")[1]; // Se espera formato "Bearer <token>"
+  const token = getTokenFromHeaders(event.headers);
+
   if (!token) {
-    return {
-      statusCode: 401,
-      body: JSON.stringify({ message: "No autorizado: token mal formado" }),
-    };
+    return unauthorizedResponse("Falta el token");
   }
 
   try {
-    const secret = process.env.JWT_SECRET;
-    if (!secret) {
-      throw new Error("JWT_SECRET is not defined");
-    }
-    jwt.verify(token, secret);
+    verifyToken(token);
   } catch (err) {
-    if (
-      err instanceof jwt.JsonWebTokenError ||
-      err instanceof jwt.TokenExpiredError
-    ) {
-      return {
-        statusCode: 401,
-        body: JSON.stringify({ message: "No autorizado: token inválido" }),
-      };
-    } else {
-      throw err; // O manejar como error 500
-    }
+    return handleJWTError(err);
   }
+
   try {
     switch (httpMethod) {
       case "GET":
-        if (pathParameters?.id) {
-          const conductor = await getConductor(pathParameters.id);
-          if (!conductor) {
-            return {
-              statusCode: 404,
-              body: JSON.stringify({ message: "Conductor no encontrado" }),
-            };
-          }
-          return { statusCode: 200, body: JSON.stringify(conductor) };
-        } else {
-          const conductores = await listConductores();
-          return { statusCode: 200, body: JSON.stringify(conductores) };
-        }
-
+        return handleGetRequest(pathParameters?.id);
       case "POST":
-        if (!body) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({
-              message: "Falta el cuerpo de la solicitud",
-            }),
-          };
-        }
-        const data = JSON.parse(body);
-        if (!data.Usuario_ID) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({ message: "Usuario_ID es obligatorio" }),
-          };
-        }
-        const newConductor = await createConductor(data);
-        return { statusCode: 201, body: JSON.stringify(newConductor) };
-
+        return handlePostRequest(body);
       case "PUT":
-        if (!pathParameters?.id || !body) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({
-              message: "Falta el ID o el cuerpo de la solicitud",
-            }),
-          };
-        }
-        const updateData = JSON.parse(body);
-        const updatedConductor = await updateConductor(
-          pathParameters.id,
-          updateData
-        );
-        return { statusCode: 200, body: JSON.stringify(updatedConductor) };
-
+        return handlePutRequest(pathParameters?.id, body);
       case "DELETE":
-        if (!pathParameters?.id) {
-          return {
-            statusCode: 400,
-            body: JSON.stringify({ message: "Falta el ID en la ruta" }),
-          };
-        }
-        await deleteConductor(pathParameters.id);
-        return { statusCode: 204, body: "" };
-
+        return handleDeleteRequest(pathParameters?.id);
       default:
-        return {
-          statusCode: 405,
-          body: JSON.stringify({ message: "Método no permitido" }),
-        };
+        return methodNotAllowedResponse();
     }
   } catch (error: any) {
-    console.error("Error:", error);
-    return {
-      statusCode: 500,
-      body: JSON.stringify({ message: "Error interno", error: error.message }),
-    };
+    return internalErrorResponse(error);
   }
 };
+
+const handleGetRequest = async (id?: string) => {
+  if (id) {
+    const conductor = await ConductorModel.get(id);
+    return conductor
+      ? successResponse(conductor)
+      : notFoundResponse("Conductor no encontrado");
+  }
+  const conductores = await ConductorModel.list();
+  return successResponse(conductores);
+};
+
+const handlePostRequest = async (body: string | null) => {
+  if (!body) return badRequestResponse("Falta el cuerpo de la solicitud");
+
+  const data = JSON.parse(body);
+  if (!data.Usuario_ID) {
+    return badRequestResponse("Usuario_ID es obligatorio");
+  }
+
+  const newConductor = await ConductorModel.create(data);
+  return createdResponse(newConductor);
+};
+
+const handlePutRequest = async (
+  id: string | undefined,
+  body: string | null
+) => {
+  if (!id || !body) {
+    return badRequestResponse("Falta el ID o el cuerpo de la solicitud");
+  }
+
+  const updateData = JSON.parse(body);
+  const updatedConductor = await ConductorModel.update(id, updateData);
+  return successResponse(updatedConductor);
+};
+
+const handleDeleteRequest = async (id: string | undefined) => {
+  if (!id) return badRequestResponse("Falta el ID en la ruta");
+
+  await ConductorModel.delete(id);
+  return noContentResponse();
+};
+
+// Helper functions
+const getTokenFromHeaders = (headers: any) => {
+  const authHeader = headers?.Authorization || headers?.authorization;
+  return authHeader?.split(" ")[1];
+};
+
+const verifyToken = (token: string) => {
+  const secret = process.env.JWT_SECRET;
+  if (!secret) throw new Error("JWT_SECRET no está definido");
+  jwt.verify(token, secret);
+};
+
+const unauthorizedResponse = (message: string) => ({
+  statusCode: 401,
+  body: JSON.stringify({ message: `No autorizado: ${message}` }),
+});
+
+const handleJWTError = (err: any) => {
+  if (
+    err instanceof jwt.JsonWebTokenError ||
+    err instanceof jwt.TokenExpiredError
+  ) {
+    return unauthorizedResponse("token inválido");
+  }
+  throw err;
+};
+
+const successResponse = (data: any) => ({
+  statusCode: 200,
+  body: JSON.stringify(data),
+});
+
+const createdResponse = (data: any) => ({
+  statusCode: 201,
+  body: JSON.stringify(data),
+});
+
+const noContentResponse = () => ({
+  statusCode: 204,
+  body: "",
+});
+
+const badRequestResponse = (message: string) => ({
+  statusCode: 400,
+  body: JSON.stringify({ message }),
+});
+
+const notFoundResponse = (message: string) => ({
+  statusCode: 404,
+  body: JSON.stringify({ message }),
+});
+
+const methodNotAllowedResponse = () => ({
+  statusCode: 405,
+  body: JSON.stringify({ message: "Método no permitido" }),
+});
+
+const internalErrorResponse = (error: any) => ({
+  statusCode: 500,
+  body: JSON.stringify({ message: "Error interno", error: error.message }),
+});
