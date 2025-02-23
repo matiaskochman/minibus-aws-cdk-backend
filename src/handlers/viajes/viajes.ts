@@ -1,15 +1,8 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
-import {
-  createViaje,
-  getViaje,
-  updateViaje,
-  deleteViaje,
-  listViajes,
-  getViajesPorRuta,
-  getViajesPorConductor,
-} from "../models/viajeModel";
+
 import * as jwt from "jsonwebtoken";
 import { JsonWebTokenError, TokenExpiredError } from "jsonwebtoken";
+import ViajeModel from "../../models/viajeModel";
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -52,17 +45,19 @@ export const handler = async (
     switch (httpMethod) {
       case "GET":
         if (event.queryStringParameters?.conductorId) {
-          const viajes = await getViajesPorConductor(
+          const viajes = await ViajeModel.getByConductor(
             event.queryStringParameters.conductorId
           );
           return { statusCode: 200, body: JSON.stringify(viajes) };
         }
         if (queryStringParameters?.rutaId) {
-          const viajes = await getViajesPorRuta(queryStringParameters.rutaId);
+          const viajes = await ViajeModel.getByRuta(
+            queryStringParameters.rutaId
+          );
           return { statusCode: 200, body: JSON.stringify(viajes) };
         }
         if (pathParameters?.id) {
-          const viaje = await getViaje(pathParameters.id);
+          const viaje = await ViajeModel.get(pathParameters.id);
           if (!viaje) {
             return {
               statusCode: 404,
@@ -71,7 +66,7 @@ export const handler = async (
           }
           return { statusCode: 200, body: JSON.stringify(viaje) };
         } else {
-          const viajes = await listViajes();
+          const viajes = await ViajeModel.list();
           return { statusCode: 200, body: JSON.stringify(viajes) };
         }
       case "POST":
@@ -91,7 +86,7 @@ export const handler = async (
             }),
           };
         }
-        const newViaje = await createViaje({
+        const newViaje = await ViajeModel.create({
           ...data,
           estado: data.estado || "programado",
           fechaInicio: new Date().toISOString(),
@@ -118,7 +113,10 @@ export const handler = async (
             }),
           };
         }
-        const updatedViaje = await updateViaje(pathParameters.id, updateData);
+        const updatedViaje = await ViajeModel.update(
+          pathParameters.id,
+          updateData
+        );
         return { statusCode: 200, body: JSON.stringify(updatedViaje) };
       case "DELETE":
         if (!pathParameters?.id) {
@@ -127,7 +125,7 @@ export const handler = async (
             body: JSON.stringify({ message: "ID faltante" }),
           };
         }
-        await deleteViaje(pathParameters.id);
+        await ViajeModel.delete(pathParameters.id);
         return { statusCode: 204, body: "" };
       default:
         return {

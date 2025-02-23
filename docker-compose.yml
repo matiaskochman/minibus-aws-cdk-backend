@@ -6,7 +6,7 @@ services:
     ports:
       - "4566:4566" # Solo este puerto necesario
     environment:
-      - SERVICES=lambda,apigateway,dynamodb,s3,ssm,cloudformation,iam
+      - SERVICES=lambda,apigateway,dynamodb,s3,ssm,cloudformation,iam,events
       - DEBUG=1
       - DEFAULT_REGION=us-east-1
       - EDGE_PORT=4566

@@ -3,6 +3,8 @@ import { Construct } from "constructs";
 import { DynamoDBConstruct } from "./dynamodb-construct";
 import { HandlersConstruct } from "./handlers-construct";
 import * as apigateway from "aws-cdk-lib/aws-apigateway";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
 
 export class MinibusBackendAwsCdkStack extends cdk.Stack {
   constructor(scope: Construct, id: string, props?: cdk.StackProps) {
@@ -200,5 +202,11 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
       "POST",
       new apigateway.LambdaIntegration(handlers.authHandler)
     );
+
+    const cronRule = new events.Rule(this, "UpdateTripsCronRule", {
+      schedule: events.Schedule.cron({ hour: "23", minute: "0" }), // Runs daily at 11 PM UTC
+    });
+
+    cronRule.addTarget(new targets.LambdaFunction(handlers.cronHandler1));
   }
 }
