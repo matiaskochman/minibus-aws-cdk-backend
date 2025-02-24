@@ -1,7 +1,7 @@
 import { ParadaDeRuta } from "./paradaDeRuta";
 export interface Ruta {
   id: string;
-  conductorId: string;
+  minibusId: string;
   estado: "activa" | "inactiva";
   paradasDeRuta: ParadaDeRuta[];
   createdAt: string;

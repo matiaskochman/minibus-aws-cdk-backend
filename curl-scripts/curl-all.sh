@@ -10,8 +10,8 @@ echo -e "${YELLOW}========== EJECUTANDO TODAS LAS PRUEBAS ==========${NC}"
 echo -e "\n${BLUE}🔹 Ejecutando pruebas de autenticación...${NC}"
 bash curl-scripts/auth/auth.sh
 
-echo -e "\n${BLUE}🔹 Ejecutando pruebas de conductores...${NC}"
-bash curl-scripts/conductores/crud.sh
+echo -e "\n${BLUE}🔹 Ejecutando pruebas de minibuses...${NC}"
+bash curl-scripts/minibuses/crud.sh
 
 echo -e "\n${BLUE}🔹 Ejecutando pruebas de paradas...${NC}"
 bash curl-scripts/paradas/crud.sh

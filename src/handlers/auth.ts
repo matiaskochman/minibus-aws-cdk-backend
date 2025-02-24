@@ -60,7 +60,7 @@ export const handler = async (
           telegram: telegram || "",
           telefono: telefono || "",
         },
-        rol: "Conductor",
+        rol: "Minibus",
         estado: "Pendiente",
         fechaCreacion: new Date().toISOString(),
       });

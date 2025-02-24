@@ -3,10 +3,10 @@
 # Definir la URL base de la API
 source curl-scripts/set-API-URL.sh
 
-# Función para probar conductores
-test_conductores() {
-    echo -e "\nProbando POST /conductores"
-    CONDUCTOR_RESPONSE=$(curl -s -X POST "$API_URL/conductores" \
+# Función para probar minibuses
+test_minibuses() {
+    echo -e "\nProbando POST /minibuses"
+    CONDUCTOR_RESPONSE=$(curl -s -X POST "$API_URL/minibuses" \
         -H "Content-Type: application/json" \
         -d '{
             "Usuario_ID": "12345",
@@ -17,31 +17,31 @@ test_conductores() {
 
     echo "Respuesta: $CONDUCTOR_RESPONSE"
 
-    # Extraer ID del conductor
+    # Extraer ID del minibus
     CONDUCTOR_ID=$(echo "$CONDUCTOR_RESPONSE" | jq -r '.id')
 
     echo ""
-    echo -e "\nProbando GET /conductores/$CONDUCTOR_ID"
-    curl -s -X GET "$API_URL/conductores/$CONDUCTOR_ID"
+    echo -e "\nProbando GET /minibuses/$CONDUCTOR_ID"
+    curl -s -X GET "$API_URL/minibuses/$CONDUCTOR_ID"
     echo ""
     
-    echo "ID del conductor creado: $CONDUCTOR_ID"
+    echo "ID del minibus creado: $CONDUCTOR_ID"
     echo ""
-    echo -e "\nProbando GET /conductores"
-    curl -s -X GET "$API_URL/conductores"
+    echo -e "\nProbando GET /minibuses"
+    curl -s -X GET "$API_URL/minibuses"
     echo ""
 
 
-    echo -e "\nProbando PUT /conductores/$CONDUCTOR_ID"
-    curl -s -X PUT "$API_URL/conductores/$CONDUCTOR_ID" \
+    echo -e "\nProbando PUT /minibuses/$CONDUCTOR_ID"
+    curl -s -X PUT "$API_URL/minibuses/$CONDUCTOR_ID" \
         -H "Content-Type: application/json" \
         -d '{
             "Estado": "Aprobado"
         }'
     echo ""
 
-    echo -e "\nProbando DELETE /conductores/$CONDUCTOR_ID"
-    curl -s -X DELETE "$API_URL/conductores/$CONDUCTOR_ID"
+    echo -e "\nProbando DELETE /minibuses/$CONDUCTOR_ID"
+    curl -s -X DELETE "$API_URL/minibuses/$CONDUCTOR_ID"
 }
 
 # Función para probar rutas
@@ -50,7 +50,7 @@ test_rutas() {
     RUTA_RESPONSE=$(curl -s -X POST "$API_URL/rutas" \
         -H "Content-Type: application/json" \
         -d '{
-            "conductorId": "12345",
+            "minibusId": "12345",
             "estado": "activa",
             "paradasDeRuta": [
                 {
@@ -251,7 +251,7 @@ test_viajes() {
     VIAJE_RESPONSE=$(curl -s -X POST "$API_URL/viajes" \
         -H "Content-Type: application/json" \
         -d '{
-            "conductorId": "12345",
+            "minibusId": "12345",
             "rutaId": "67890",
             "estado": "programado",
             "fechaHoraSalida": "2025-02-25T08:00:00Z",
@@ -299,7 +299,7 @@ fi
 # test_paradas
 # test_rutas
 test_paradas_de_ruta
-# test_conductores
+# test_minibuses
 # agregar_parada_a_ruta
 # eliminar_parada_de_ruta
 # test_viajes

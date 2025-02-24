@@ -16,7 +16,7 @@ interface HandlersConstructProps {
 }
 
 export class HandlersConstruct extends Construct {
-  public readonly conductoresHandler: lambdaNode.NodejsFunction;
+  public readonly minibusesHandler: lambdaNode.NodejsFunction;
   public readonly rutasHandler: lambdaNode.NodejsFunction;
   public readonly paradasHandler: lambdaNode.NodejsFunction;
   public readonly paradasDeRutaHandler: lambdaNode.NodejsFunction;
@@ -28,13 +28,13 @@ export class HandlersConstruct extends Construct {
   constructor(scope: Construct, id: string, props: HandlersConstructProps) {
     super(scope, id);
 
-    // Existing conductor handler
-    this.conductoresHandler = new lambdaNode.NodejsFunction(
+    // Existing minibus handler
+    this.minibusesHandler = new lambdaNode.NodejsFunction(
       this,
-      "ConductoresHandler",
+      "MinibusesHandler",
       {
         runtime: lambda.Runtime.NODEJS_18_X,
-        entry: path.join(__dirname, "../handlers/conductores.ts"),
+        entry: path.join(__dirname, "../handlers/minibuses.ts"),
         handler: "handler",
         environment: {
           USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
@@ -146,7 +146,7 @@ export class HandlersConstruct extends Construct {
 
     props.usersTable.grantReadWriteData(this.usuariosHandler);
     props.viajesTable.grantReadWriteData(this.viajesHandler);
-    props.driversTable.grantReadWriteData(this.conductoresHandler);
+    props.driversTable.grantReadWriteData(this.minibusesHandler);
     props.routesTable.grantReadWriteData(this.rutasHandler);
     props.paradasTable.grantReadWriteData(this.paradasHandler);
     props.paradasDeRutaTable.grantReadWriteData(this.paradasDeRutaHandler);

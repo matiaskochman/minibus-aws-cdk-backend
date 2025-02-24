@@ -63,7 +63,7 @@ crear_usuario() {
         "telegram": "@juanp",
         "telefono": "+5491112345678"
       },
-      "rol": "Conductor",
+      "rol": "Minibus",
       "estado": "Pendiente"
     }' \
     ${USUARIOS_ENDPOINT})

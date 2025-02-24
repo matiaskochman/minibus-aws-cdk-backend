@@ -1,21 +1,21 @@
 #!/bin/bash
-# Archivo: /curl-scripts/conductores.sh
-# Descripción: Pruebas para el handler de conductores utilizando common.sh
+# Archivo: /curl-scripts/minibuses.sh
+# Descripción: Pruebas para el handler de minibuses utilizando common.sh
 
 source curl-scripts/common.sh
 
-CONDUCTORES_ENDPOINT="$API_URL/conductores"
+CONDUCTORES_ENDPOINT="$API_URL/minibuses"
 
-list_conductores() {
-  echo -e "${BLUE}🔹 Listando conductores...${NC}"
+list_minibuses() {
+  echo -e "${BLUE}🔹 Listando minibuses...${NC}"
   local response=$(curl -s -X GET "$CONDUCTORES_ENDPOINT" \
     -H "Authorization: Bearer $TOKEN")
 
-  echo -e "${GREEN}📌 Respuesta de list conductores:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de list minibuses:${NC} $response"
 }
 
-create_conductor() {
-  echo -e "${BLUE}🔹 Creando un nuevo conductor...${NC}"
+create_minibus() {
+  echo -e "${BLUE}🔹 Creando un nuevo minibus...${NC}"
   local response=$(curl -s -X POST "$CONDUCTORES_ENDPOINT" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
@@ -27,32 +27,32 @@ create_conductor() {
       "Vendedor_ID": null
     }')
 
-  echo -e "${GREEN}📌 Respuesta de create conductor:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de create minibus:${NC} $response"
 
-  # Extraer el ID del conductor creado
+  # Extraer el ID del minibus creado
   local id=$(echo "$response" | jq -r '.id')
   
   if [[ "$id" != "null" && -n "$id" ]]; then
-    echo -e "${GREEN}✅ Conductor creado con ID: ${id}${NC}"
+    echo -e "${GREEN}✅ minibus creado con ID: ${id}${NC}"
     echo "$id"
   else
-    echo -e "${RED}❌ Error al obtener el ID del conductor creado.${NC}"
+    echo -e "${RED}❌ Error al obtener el ID del minibus creado.${NC}"
     exit 1
   fi
 }
 
-get_conductor() {
+get_minibus() {
   local id="$1"
-  echo -e "${BLUE}🔹 Obteniendo conductor con ID: ${id}...${NC}"
+  echo -e "${BLUE}🔹 Obteniendo minibus con ID: ${id}...${NC}"
   local response=$(curl -s -X GET "$CONDUCTORES_ENDPOINT/$id" \
     -H "Authorization: Bearer $TOKEN")
   
-  echo -e "${GREEN}📌 Respuesta de get conductor:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de get minibus:${NC} $response"
 }
 
-update_conductor() {
+update_minibus() {
   local id="$1"
-  echo -e "${BLUE}🔹 Actualizando conductor con ID: ${id}...${NC}"
+  echo -e "${BLUE}🔹 Actualizando minibus con ID: ${id}...${NC}"
   local response=$(curl -s -X PUT "$CONDUCTORES_ENDPOINT/$id" \
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
@@ -62,28 +62,28 @@ update_conductor() {
       "Foto_VTV": "nueva_foto_vtv.jpg"
     }')
 
-  echo -e "${GREEN}📌 Respuesta de update conductor:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de update minibus:${NC} $response"
 }
 
-delete_conductor() {
+delete_minibus() {
   local id="$1"
-  echo -e "${BLUE}🔹 Eliminando conductor con ID: ${id}...${NC}"
+  echo -e "${BLUE}🔹 Eliminando minibus con ID: ${id}...${NC}"
   local response=$(curl -s -X DELETE "$CONDUCTORES_ENDPOINT/$id" \
     -H "Authorization: Bearer $TOKEN")
 
-  echo -e "${GREEN}📌 Respuesta de delete conductor:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de delete minibus:${NC} $response"
 }
 
 echo -e "${YELLOW}========== PRUEBAS PARA CONDUCTORES ==========${NC}"
 
 login
-CONDUCTOR_ID=$(create_conductor)
-list_conductores
+CONDUCTOR_ID=$(create_minibus)
+list_minibuses
 
 if [[ -n "$CONDUCTOR_ID" ]]; then
-  get_conductor "$CONDUCTOR_ID"
-  update_conductor "$CONDUCTOR_ID"
-  delete_conductor "$CONDUCTOR_ID"
+  get_minibus "$CONDUCTOR_ID"
+  update_minibus "$CONDUCTOR_ID"
+  delete_minibus "$CONDUCTOR_ID"
 fi
 
 echo -e "${YELLOW}========== FIN PRUEBAS PARA CONDUCTORES ==========${NC}"

@@ -133,14 +133,14 @@ class ViajeModel {
     return result.Items as Viaje[];
   }
 
-  static async getByConductor(conductorId: string): Promise<Viaje[]> {
+  static async getByMinibus(minibusId: string): Promise<Viaje[]> {
     const result = await ViajeModel.docClient.send(
       new QueryCommand({
         TableName: ViajeModel.TABLE_NAME,
-        IndexName: "ViajesPorConductorIndex",
-        KeyConditionExpression: "conductorId = :conductorId",
+        IndexName: "ViajesPorMinibusIndex",
+        KeyConditionExpression: "minibusId = :minibusId",
         ExpressionAttributeValues: {
-          ":conductorId": conductorId,
+          ":minibusId": minibusId,
         },
         ScanIndexForward: false, // Orden descendente por fecha
       })
@@ -288,15 +288,15 @@ export default ViajeModel;
 // };
 
 // export const getViajesPorConductor = async (
-//   conductorId: string
+//   minibusId: string
 // ): Promise<Viaje[]> => {
 //   const result = await docClient.send(
 //     new QueryCommand({
 //       TableName: TABLE_NAME,
 //       IndexName: "ViajesPorConductorIndex",
-//       KeyConditionExpression: "conductorId = :conductorId",
+//       KeyConditionExpression: "minibusId = :minibusId",
 //       ExpressionAttributeValues: {
-//         ":conductorId": conductorId,
+//         ":minibusId": minibusId,
 //       },
 //       ScanIndexForward: false, // Orden descendente por fecha
 //     })

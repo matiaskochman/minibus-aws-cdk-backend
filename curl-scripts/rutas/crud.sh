@@ -20,7 +20,7 @@ create_ruta() {
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d '{
-          "conductorId": "conductor_id_example",
+          "minibusId": "minibus_id_example",
           "paradasDeRuta": ["parada_ruta_id_1", "parada_ruta_id_2"],
           "estado": "activa"
         }')

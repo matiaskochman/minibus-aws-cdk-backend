@@ -42,8 +42,8 @@ const handleGetRequest = async (id?: string, query?: any) => {
       : notFoundResponse("Viaje no encontrado");
   }
 
-  if (query?.conductorId) {
-    const viajes = await ViajeModel.getByConductor(query.conductorId);
+  if (query?.minibusId) {
+    const viajes = await ViajeModel.getByMinibus(query.minibusId);
     return successResponse(viajes);
   }
 
@@ -60,7 +60,7 @@ const handlePostRequest = async (body: string | null) => {
   if (!body) return badRequestResponse("Cuerpo faltante");
 
   const data = JSON.parse(body);
-  if (!data.rutaId || !data.conductorId || !data.paradasDeRuta) {
+  if (!data.rutaId || !data.minibusId || !data.paradasDeRuta) {
     return badRequestResponse("Faltan campos requeridos");
   }
 

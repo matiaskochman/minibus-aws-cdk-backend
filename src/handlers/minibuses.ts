@@ -1,6 +1,6 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import * as jwt from "jsonwebtoken";
-import ConductorModel from "../models/conductorModel";
+import MinibusModel from "../models/minibusModel";
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -38,13 +38,13 @@ export const handler = async (
 
 const handleGetRequest = async (id?: string) => {
   if (id) {
-    const conductor = await ConductorModel.get(id);
-    return conductor
-      ? successResponse(conductor)
-      : notFoundResponse("Conductor no encontrado");
+    const minibus = await MinibusModel.get(id);
+    return minibus
+      ? successResponse(minibus)
+      : notFoundResponse("Minibus no encontrado");
   }
-  const conductores = await ConductorModel.list();
-  return successResponse(conductores);
+  const minibuses = await MinibusModel.list();
+  return successResponse(minibuses);
 };
 
 const handlePostRequest = async (body: string | null) => {
@@ -55,8 +55,8 @@ const handlePostRequest = async (body: string | null) => {
     return badRequestResponse("Usuario_ID es obligatorio");
   }
 
-  const newConductor = await ConductorModel.create(data);
-  return createdResponse(newConductor);
+  const newMinibus = await MinibusModel.create(data);
+  return createdResponse(newMinibus);
 };
 
 const handlePutRequest = async (
@@ -68,14 +68,14 @@ const handlePutRequest = async (
   }
 
   const updateData = JSON.parse(body);
-  const updatedConductor = await ConductorModel.update(id, updateData);
-  return successResponse(updatedConductor);
+  const updatedMinibus = await MinibusModel.update(id, updateData);
+  return successResponse(updatedMinibus);
 };
 
 const handleDeleteRequest = async (id: string | undefined) => {
   if (!id) return badRequestResponse("Falta el ID en la ruta");
 
-  await ConductorModel.delete(id);
+  await MinibusModel.delete(id);
   return noContentResponse();
 };
 

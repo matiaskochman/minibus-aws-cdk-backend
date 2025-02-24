@@ -13,7 +13,7 @@ The `cdk.json` file tells the CDK Toolkit how to execute your app.
 - `npx cdk diff` compare deployed stack with current state
 - `npx cdk synth` emits the synthesized CloudFormation template
 
-A continuación se muestra el documento original modificado, integrando nuevos endpoints para que los **conductores** gestionen los **viajes**:
+A continuación se muestra el documento original modificado, integrando nuevos endpoints para que los **minibuses** gestionen los **viajes**:
 
 ---
 
@@ -23,10 +23,10 @@ A continuación se muestra el documento original modificado, integrando nuevos e
 
 La aplicación de transporte en minibuses tendrá cuatro componentes principales:
 
-1. **App para Clientes**: Permite a los pasajeros buscar y comprar tickets para rutas creadas por conductores.
-2. **App para Conductores**: Los conductores podrán crear, gestionar y operar sus propias rutas y viajes.
-3. **App de Administración**: Gestiona conductores, rutas, pagos y puede aprobar rutas si es necesario.
-4. **App para Vendedores**: Permite a los usuarios vendedores reclutar conductores y recibir una comisión por sus ventas durante un período determinado.
+1. **App para Clientes**: Permite a los pasajeros buscar y comprar tickets para rutas creadas por minibuses.
+2. **App para Conductores**: Los minibuses podrán crear, gestionar y operar sus propias rutas y viajes.
+3. **App de Administración**: Gestiona minibuses, rutas, pagos y puede aprobar rutas si es necesario.
+4. **App para Vendedores**: Permite a los usuarios vendedores reclutar minibuses y recibir una comisión por sus ventas durante un período determinado.
 
 ---
 
@@ -36,9 +36,9 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
 - Una ruta puede tener múltiples paradas, y los pasajeros pueden buscar viajes entre cualquier par de paradas dentro de una ruta existente.
 - Los **tickets pueden ser revendidos** a otros clientes mediante un **marketplace**, donde se listan los tickets disponibles para reventa.
 - Cada **viaje** puede activarse o desactivarse para permitir la reventa de tickets.
-- Los **conductores pueden aplicar descuentos** a un viaje que aún no ha sido realizado; los tickets **no vendidos** recibirán el descuento, mientras que los tickets ya comprados **mantendrán su precio original**.
-- Se agrega la posibilidad de que exista un **usuario vendedor**, quien recluta conductores y recibe una comisión por cada venta de los conductores que haya reclutado durante un tiempo determinado.
-- Los **vendedores pueden asociarse a un conductor mediante la app de administración**.
+- Los **minibuses pueden aplicar descuentos** a un viaje que aún no ha sido realizado; los tickets **no vendidos** recibirán el descuento, mientras que los tickets ya comprados **mantendrán su precio original**.
+- Se agrega la posibilidad de que exista un **usuario vendedor**, quien recluta minibuses y recibe una comisión por cada venta de los minibuses que haya reclutado durante un tiempo determinado.
+- Los **vendedores pueden asociarse a un minibus mediante la app de administración**.
 
 ---
 
@@ -70,7 +70,7 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
 
 - Registro e inicio de sesión con validación de identidad.
 - **Subida de documentación obligatoria:**
-  - Foto del **DNI** del conductor.
+  - Foto del **DNI** del minibus.
   - Foto de la **documentación de la VTV** del minibús.
 - **Creación de rutas** con origen, destino, múltiples paradas intermedias y horarios.
 - **Cada dirección de viaje cuenta como una ruta independiente.**
@@ -84,32 +84,32 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
 - **Gestión de Viajes**:
   - Creación y planificación de viajes basados en rutas.
   - Actualización del estado del viaje en tiempo real.
-- **Los conductores pueden estar asociados a un vendedor**, quien recibe una comisión por sus ventas.
+- **Los minibuses pueden estar asociados a un vendedor**, quien recibe una comisión por sus ventas.
 
 ## 🏢 **3. App de Administración (MVP)**
 
 ### ✅ Funcionalidades
 
-- **Aprobación de rutas** creadas por conductores (opcional).
-- **Verificación de documentos subidos por conductores** (DNI y VTV).
-- **Monitoreo y gestión** de conductores.
+- **Aprobación de rutas** creadas por minibuses (opcional).
+- **Verificación de documentos subidos por minibuses** (DNI y VTV).
+- **Monitoreo y gestión** de minibuses.
 - **Revisión y modificación de rutas** (si se requiere supervisión).
 - **Gestión de tarifas y políticas de precios.**
 - **Monitoreo financiero** de ventas y pagos.
 - **Monitoreo del marketplace de reventa de tickets.**
-- **Control de descuentos aplicados por los conductores.**
+- **Control de descuentos aplicados por los minibuses.**
 - **Soporte y resolución de incidencias.**
 - **Monitoreo y asignación de comisiones a los vendedores.**
-- **Asociación de vendedores a conductores para la gestión de comisiones.**
+- **Asociación de vendedores a minibuses para la gestión de comisiones.**
 
 ## 🏪 **4. App para Vendedores (MVP)**
 
 ### ✅ Funcionalidades
 
 - Registro e inicio de sesión.
-- Reclutamiento de conductores.
-- Visualización de comisiones generadas por las ventas de los conductores asociados.
-- **Asociación de conductores mediante la app de administración.**
+- Reclutamiento de minibuses.
+- Visualización de comisiones generadas por las ventas de los minibuses asociados.
+- **Asociación de minibuses mediante la app de administración.**
 
 ## 🗄 **Base de Datos y Modelado**
 
@@ -117,8 +117,8 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
 
 #### 🏷 **Usuarios**
 
-| ID  | Nombre | Rol (Cliente/Conductor/Vendedor/Admin) | Teléfono | Email | Verificación | Telegram | Estado |
-| --- | ------ | -------------------------------------- | -------- | ----- | ------------ | -------- | ------ |
+| ID  | Nombre | Rol (Cliente/Minibus/Vendedor/Admin) | Teléfono | Email | Verificación | Telegram | Estado |
+| --- | ------ | ------------------------------------ | -------- | ----- | ------------ | -------- | ------ |
 
 #### 🚌 **Conductores**
 
@@ -154,8 +154,8 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
 #### 🔹 **Para Vendedores**
 
 - `POST /vendedores` → Registrar un nuevo vendedor.
-- `GET /mis-conductores` → Ver la lista de conductores asociados.
-- `POST /asociar-conductor` → Asociar un conductor a un vendedor mediante la app de administración.
+- `GET /mis-minibuses` → Ver la lista de minibuses asociados.
+- `POST /asociar-minibus` → Asociar un minibus a un vendedor mediante la app de administración.
 - `GET /comisiones` → Ver las comisiones acumuladas.
 
 #### 🔹 **Para Conductores**
@@ -168,7 +168,7 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
 - `GET /mis-rutas` → Ver rutas creadas.
 - **Endpoints para Viajes:**
   - `POST /viajes` → Crear un nuevo viaje basado en una ruta existente.
-  - `GET /mis-viajes` → Listar todos los viajes programados por el conductor.
+  - `GET /mis-viajes` → Listar todos los viajes programados por el minibus.
   - `GET /viajes/{id}` → Obtener detalles de un viaje específico.
   - `PUT /viajes/{id}/estado` → Actualizar el estado del viaje (inicio, finalización, cancelación, retrasos).
 
@@ -197,18 +197,18 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
   - `POST /admin/login` → Inicio de sesión para administradores.
   - `POST /admin/logout` → Cierre de sesión.
 - **Gestión de Conductores**
-  - `GET /admin/conductores` → Listar todos los conductores registrados.
-  - `GET /admin/conductores/{id}` → Obtener detalles de un conductor (incluyendo documentos: DNI y VTV).
-  - `PUT /admin/conductores/{id}/estado` → Actualizar el estado de un conductor (por ejemplo, aprobar o rechazar la validación de documentos).
+  - `GET /admin/minibuses` → Listar todos los minibuses registrados.
+  - `GET /admin/minibuses/{id}` → Obtener detalles de un minibus (incluyendo documentos: DNI y VTV).
+  - `PUT /admin/minibuses/{id}/estado` → Actualizar el estado de un minibus (por ejemplo, aprobar o rechazar la validación de documentos).
 - **Gestión de Rutas y Viajes**
-  - `GET /admin/rutas` → Listar todas las rutas creadas por conductores.
+  - `GET /admin/rutas` → Listar todas las rutas creadas por minibuses.
   - `PUT /admin/rutas/{id}` → Aprobar, editar o rechazar rutas según corresponda.
   - `DELETE /admin/rutas/{id}` → Eliminar rutas que no hayan sido aprobadas o tengan incidencias.
   - `GET /admin/viajes` → Listar todos los viajes programados, con detalles sobre estado, descuentos y activación de reventa.
 - **Control Financiero y Comisiones**
   - `GET /admin/ventas` → Revisar todas las ventas de tickets.
   - `GET /admin/comisiones` → Listar y filtrar las comisiones generadas por vendedores.
-  - `POST /admin/asociar-vendedor` → Asociar un vendedor a un conductor para la gestión de comisiones.
+  - `POST /admin/asociar-vendedor` → Asociar un vendedor a un minibus para la gestión de comisiones.
 - **Supervisión del Marketplace**
   - `GET /admin/marketplace` → Supervisar los tickets en reventa.
   - `PUT /admin/marketplace/{ticketId}` → Modificar o eliminar un ticket en reventa en caso de incidencias.
@@ -224,8 +224,8 @@ La aplicación ahora integra un completo ecosistema para gestionar:
 
 - **Clientes**: Búsqueda, compra y reventa de tickets, con aplicación de descuentos y notificaciones.
 - **Conductores**: Creación y gestión de rutas y viajes, validación de documentos, actualización de estados y aplicación de descuentos en viajes.
-- **Administradores**: Supervisión y aprobación de rutas, validación de documentos, gestión financiera, incidencias y asociaciones entre vendedores y conductores.
-- **Vendedores**: Reclutamiento de conductores y seguimiento de comisiones por ventas.
+- **Administradores**: Supervisión y aprobación de rutas, validación de documentos, gestión financiera, incidencias y asociaciones entre vendedores y minibuses.
+- **Vendedores**: Reclutamiento de minibuses y seguimiento de comisiones por ventas.
 
 🚀 **Próximo paso**: Implementar la interfaz de administración para gestionar las asociaciones de vendedores y optimizar la experiencia en cada uno de los módulos.
 

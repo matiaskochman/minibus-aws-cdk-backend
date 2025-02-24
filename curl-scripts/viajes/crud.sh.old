@@ -6,7 +6,7 @@ source curl-scripts/set-API-URL.sh
 # Variable global para almacenar el ID del viaje creado
 VIAJE_ID=""
 ruta_id="ruta-55555"
-conductor_id="conductor-1"
+minibus_id="minibus-1"
 
 crear_viaje() {
     echo -e "\n🔹 Creando un nuevo viaje (POST /viajes)"
@@ -14,7 +14,7 @@ crear_viaje() {
         -H "Content-Type: application/json" \
         -d '{
             "rutaId": "ruta-12345",
-            "conductorId": "conductor-67890",
+            "minibusId": "minibus-67890",
             "paradasDeRuta": [
                 {
                     "id": "parada-001",
@@ -63,7 +63,7 @@ crear_tres_viajes_misma_ruta() {
             -H "Content-Type: application/json" \
             -d "{
                 \"rutaId\": \"$ruta_id\",
-                \"conductorId\": \"conductor-1\",
+                \"minibusId\": \"minibus-1\",
                 \"paradasDeRuta\": [
                     {
                         \"id\": \"parada-001\",
@@ -123,10 +123,10 @@ listar_viajes_por_ruta() {
     echo -e "\n🔹 Viajes de la ruta $ruta_id (GET /viajes?rutaId=$ruta_id)"
     curl -s -X GET "$API_URL/viajes?rutaId=$ruta_id" | jq .
 }
-listar_viajes_por_conductor() {
+listar_viajes_por_minibus() {
     # local ruta_id="$1"
-    echo -e "\n🔹 Viajes del conductor $conductor_id (GET viajes?conductorId=$conductor_id)"
-    curl -s -X GET "$API_URL/viajes?conductorId=$conductor_id" | jq .
+    echo -e "\n🔹 Viajes del minibus $minibus_id (GET viajes?minibusId=$minibus_id)"
+    curl -s -X GET "$API_URL/viajes?minibusId=$minibus_id" | jq .
 }
 actualizar_viaje() {
     if [ -z "$VIAJE_ID" ]; then
@@ -164,6 +164,6 @@ fi
 # listar_viajes
 crear_tres_viajes_misma_ruta
 listar_viajes_por_ruta
-listar_viajes_por_conductor
+listar_viajes_por_minibus
 # actualizar_viaje
 # eliminar_viaje

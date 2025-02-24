@@ -89,7 +89,7 @@ const handleDeleteRequest = async (id: string | undefined) => {
   return noContentResponse();
 };
 
-// Reutilizar las mismas funciones helper de conductores.ts
+// Reutilizar las mismas funciones helper de minibuses.ts
 // (getTokenFromHeaders, verifyToken, response helpers, etc.)
 // Helper functions
 const getTokenFromHeaders = (headers: any) => {

@@ -49,12 +49,12 @@ const handlePostRequest = async (body: string | null) => {
   if (!body) return badRequestResponse("Cuerpo de solicitud faltante");
 
   const data = JSON.parse(body);
-  if (!data.conductorId || !data.paradasDeRuta) {
-    return badRequestResponse("Faltan campos: conductorId y paradasDeRuta");
+  if (!data.minibusId || !data.paradasDeRuta) {
+    return badRequestResponse("Faltan campos: minibusId y paradasDeRuta");
   }
 
   const newRuta = await RutaModel.create({
-    conductorId: data.conductorId,
+    minibusId: data.minibusId,
     estado: data.estado || "activa",
     paradasDeRuta: data.paradasDeRuta,
     createdAt: new Date().toISOString(),

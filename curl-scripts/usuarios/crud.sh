@@ -28,7 +28,7 @@ create_usuario() {
             "telegram": "@jane_doe",
             "telefono": "987654321"
           },
-          "rol": "Conductor",
+          "rol": "Minibus",
           "estado": "Pendiente",
           "fechaCreacion": "2025-02-22T12:00:00.000Z"
         }')

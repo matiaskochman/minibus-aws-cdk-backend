@@ -34,34 +34,34 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
     });
 
     // Configurar rutas
-    const conductoresResource = api.root.addResource("conductores");
-    conductoresResource.addMethod(
+    const minibusesResource = api.root.addResource("minibuses");
+    minibusesResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(handlers.conductoresHandler)
+      new apigateway.LambdaIntegration(handlers.minibusesHandler)
     );
-    conductoresResource.addMethod(
+    minibusesResource.addMethod(
       "POST",
-      new apigateway.LambdaIntegration(handlers.conductoresHandler)
+      new apigateway.LambdaIntegration(handlers.minibusesHandler)
     );
 
-    const conductorResource = conductoresResource.addResource("{id}");
-    conductorResource.addMethod(
+    const minibusResource = minibusesResource.addResource("{id}");
+    minibusResource.addMethod(
       "GET",
-      new apigateway.LambdaIntegration(handlers.conductoresHandler)
+      new apigateway.LambdaIntegration(handlers.minibusesHandler)
     );
-    conductorResource.addMethod(
+    minibusResource.addMethod(
       "PUT",
-      new apigateway.LambdaIntegration(handlers.conductoresHandler)
+      new apigateway.LambdaIntegration(handlers.minibusesHandler)
     );
-    conductorResource.addMethod(
+    minibusResource.addMethod(
       "DELETE",
-      new apigateway.LambdaIntegration(handlers.conductoresHandler)
+      new apigateway.LambdaIntegration(handlers.minibusesHandler)
     );
 
     // Outputs
     new cdk.CfnOutput(this, "ApiUrl", {
-      value: api.urlForPath("/conductores"),
-      description: "Endpoint de conductores",
+      value: api.urlForPath("/minibuses"),
+      description: "Endpoint de minibuses",
     });
 
     // Nueva configuración para rutas

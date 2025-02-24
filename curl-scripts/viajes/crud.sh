@@ -20,7 +20,7 @@ create_viaje() {
     -H "Authorization: Bearer $TOKEN" \
     -d '{
           "rutaId": "ruta_id_example",
-          "conductorId": "conductor_id_example",
+          "minibusId": "minibus_id_example",
           "paradasDeRuta": ["parada_ruta_id_1", "parada_ruta_id_2"],
           "estado": "programado"
         }')
@@ -65,12 +65,12 @@ delete_viaje() {
   echo -e "${GREEN}📌 Respuesta de delete viaje:${NC} $response"
 }
 
-get_viajes_por_conductor() {
-  local conductor_id="$1"
-  echo -e "${BLUE}🔹 Obteniendo viajes por conductor (ID: ${conductor_id})...${NC}"
-  local response=$(curl -s -X GET "$VIAJES_ENDPOINT?conductorId=${conductor_id}" \
+get_viajes_por_minibus() {
+  local minibus_id="$1"
+  echo -e "${BLUE}🔹 Obteniendo viajes por minibus (ID: ${minibus_id})...${NC}"
+  local response=$(curl -s -X GET "$VIAJES_ENDPOINT?minibusId=${minibus_id}" \
     -H "Authorization: Bearer $TOKEN")
-  echo -e "${GREEN}📌 Respuesta de viajes por conductor:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de viajes por minibus:${NC} $response"
 }
 
 get_viajes_por_ruta() {
@@ -98,7 +98,7 @@ if [[ -n "$VIAJE_ID" ]]; then
   delete_viaje "$VIAJE_ID"
 fi
 
-get_viajes_por_conductor "conductor_id_example"
+get_viajes_por_minibus "minibus_id_example"
 get_viajes_por_ruta "ruta_id_example"
 
 echo -e "${YELLOW}========== FIN PRUEBAS PARA VIAJES ==========${NC}"

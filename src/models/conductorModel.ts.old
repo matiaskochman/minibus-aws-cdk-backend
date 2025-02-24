@@ -8,7 +8,7 @@ import {
   ScanCommand,
 } from "@aws-sdk/lib-dynamodb";
 import { v4 as uuidv4 } from "uuid";
-import { Conductor } from "../types/conductor";
+import { Conductor } from "../types/minibus.ts.old2";
 
 class ConductorModel {
   private static isLocal = process.env.USE_LOCALSTACK === "true";
@@ -27,11 +27,11 @@ class ConductorModel {
   private static TABLE_NAME = process.env.CONDUCTORES_TABLE || "Conductores";
 
   static async create(
-    conductorData: Omit<Conductor, "id">
+    minibusData: Omit<Conductor, "id">
   ): Promise<Conductor> {
     const newConductor: Conductor = {
       id: uuidv4(),
-      ...conductorData,
+      ...minibusData,
     };
     await ConductorModel.docClient.send(
       new PutCommand({

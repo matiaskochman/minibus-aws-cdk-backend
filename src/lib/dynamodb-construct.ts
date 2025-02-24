@@ -27,7 +27,7 @@ export class DynamoDBConstruct extends Construct {
       partitionKey: { name: "role", type: dynamodb.AttributeType.STRING },
     });
 
-    // Tabla de Conductores
+    // Tabla de Minibuses
     this.driversTable = new dynamodb.Table(this, "DriversTable", {
       tableName: "Drivers",
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
@@ -52,9 +52,9 @@ export class DynamoDBConstruct extends Construct {
     });
 
     this.routesTable.addGlobalSecondaryIndex({
-      indexName: "RoutesByConductorIndex",
+      indexName: "RoutesByMinibusIndex",
       partitionKey: {
-        name: "conductorId",
+        name: "minibusId",
         type: dynamodb.AttributeType.STRING,
       },
     });
@@ -94,7 +94,7 @@ export class DynamoDBConstruct extends Construct {
       partitionKey: { name: "paradaId", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "createdAt", type: dynamodb.AttributeType.STRING },
       projectionType: dynamodb.ProjectionType.INCLUDE,
-      nonKeyAttributes: ["rutaId", "conductorId", "estado"],
+      nonKeyAttributes: ["rutaId", "minibusId", "estado"],
     });
 
     this.viajesTable.addGlobalSecondaryIndex({
@@ -104,9 +104,9 @@ export class DynamoDBConstruct extends Construct {
       projectionType: dynamodb.ProjectionType.ALL,
     });
     this.viajesTable.addGlobalSecondaryIndex({
-      indexName: "ViajesPorConductorIndex",
+      indexName: "ViajesPorMinibusIndex",
       partitionKey: {
-        name: "conductorId",
+        name: "minibusId",
         type: dynamodb.AttributeType.STRING,
       },
       sortKey: { name: "createdAt", type: dynamodb.AttributeType.STRING },

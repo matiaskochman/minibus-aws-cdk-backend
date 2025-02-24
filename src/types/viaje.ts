@@ -5,7 +5,7 @@ export interface Viaje {
   id: string;
   rutaId: string;
   fecha: string;
-  conductorId: string;
+  minibusId: string;
   estado: "Pendiente" | "Cancelado" | "Realizado" | "En curso" | "Pausado";
   descripcion: string;
   reventaActivada: boolean;
