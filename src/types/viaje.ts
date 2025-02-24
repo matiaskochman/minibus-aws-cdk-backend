@@ -1,5 +1,6 @@
 import { ParadaDeRuta } from "./paradaDeRuta";
 import { Ruta } from "./ruta";
+import { User } from "./user";
 
 export interface Viaje {
   id: string;
@@ -11,6 +12,7 @@ export interface Viaje {
   reventaActivada: boolean;
   descuento: number;
   ruta: Ruta;
+  // usuarioList: User[];
   paradasDeRuta: ParadaDeRuta[];
   createdAt: string;
 }

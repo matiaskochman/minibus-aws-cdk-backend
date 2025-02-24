@@ -1,6 +1,12 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import * as jwt from "jsonwebtoken";
 import MinibusModel from "../models/minibusModel";
+import {
+  getTokenFromHeaders,
+  verifyToken,
+  unauthorizedResponse,
+  handleJWTError,
+} from "../utils/auth-utils";
 
 export const handler = async (
   event: APIGatewayProxyEvent
@@ -77,33 +83,6 @@ const handleDeleteRequest = async (id: string | undefined) => {
 
   await MinibusModel.delete(id);
   return noContentResponse();
-};
-
-// Helper functions
-const getTokenFromHeaders = (headers: any) => {
-  const authHeader = headers?.Authorization || headers?.authorization;
-  return authHeader?.split(" ")[1];
-};
-
-const verifyToken = (token: string) => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error("JWT_SECRET no está definido");
-  jwt.verify(token, secret);
-};
-
-const unauthorizedResponse = (message: string) => ({
-  statusCode: 401,
-  body: JSON.stringify({ message: `No autorizado: ${message}` }),
-});
-
-const handleJWTError = (err: any) => {
-  if (
-    err instanceof jwt.JsonWebTokenError ||
-    err instanceof jwt.TokenExpiredError
-  ) {
-    return unauthorizedResponse("token inválido");
-  }
-  throw err;
 };
 
 const successResponse = (data: any) => ({

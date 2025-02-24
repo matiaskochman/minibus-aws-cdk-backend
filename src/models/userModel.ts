@@ -9,6 +9,7 @@ import {
 } from "@aws-sdk/lib-dynamodb";
 import { v4 as uuidv4 } from "uuid";
 import { User } from "../types/user";
+import { Viaje } from "../types/viaje";
 
 class UserModel {
   private static isLocal = process.env.USE_LOCALSTACK === "true";
@@ -30,6 +31,7 @@ class UserModel {
     const newUser: User = {
       id: uuidv4(),
       ...userData,
+      viajesList: [],
     };
     await UserModel.docClient.send(
       new PutCommand({ TableName: UserModel.TABLE_NAME, Item: newUser })
@@ -81,6 +83,37 @@ class UserModel {
       new ScanCommand({ TableName: UserModel.TABLE_NAME })
     );
     return result.Items as User[];
+  }
+  // Función para agregar un viaje al usuario de forma atómica
+  static async addViaje(userId: string, viaje: Viaje): Promise<User> {
+    const { Attributes } = await UserModel.docClient.send(
+      new UpdateCommand({
+        TableName: UserModel.TABLE_NAME,
+        Key: { id: userId },
+        UpdateExpression:
+          "SET viajesList = list_append(if_not_exists(viajesList, :emptyList), :newViaje)",
+        ExpressionAttributeValues: {
+          ":emptyList": [],
+          ":newViaje": [viaje],
+        },
+        ReturnValues: "ALL_NEW",
+      })
+    );
+    return Attributes as User;
+  }
+
+  // Función para quitar un viaje del usuario
+  static async removeViaje(userId: string, viajeId: string): Promise<User> {
+    // Primero obtenemos el usuario para filtrar el viaje a remover
+    const user = await UserModel.get(userId);
+    if (!user) {
+      throw new Error("Usuario no encontrado");
+    }
+    const updatedViajesList = user.viajesList.filter(
+      (viaje) => viaje.id !== viajeId
+    );
+    // Actualizamos el registro completo con la lista filtrada
+    return await UserModel.update(userId, { viajesList: updatedViajesList });
   }
 }
 

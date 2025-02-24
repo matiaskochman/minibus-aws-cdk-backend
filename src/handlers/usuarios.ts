@@ -1,21 +1,25 @@
+// File: /Users/matiaskochman/dev/personal/vercel_ex/minibus-backend-aws-cdk/src/handlers/usuarios.ts
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import * as jwt from "jsonwebtoken";
 import UserModel from "../models/userModel";
+import {
+  getTokenFromHeaders,
+  verifyToken,
+  unauthorizedResponse,
+  handleJWTError,
+} from "../utils/auth-utils";
 
 export const handler = async (
   event: APIGatewayProxyEvent
 ): Promise<APIGatewayProxyResult> => {
   const { httpMethod, pathParameters, body } = event;
   const token = getTokenFromHeaders(event.headers);
-
   if (!token) return unauthorizedResponse("Falta el token");
-
   try {
     verifyToken(token);
   } catch (err) {
     return handleJWTError(err);
   }
-
   try {
     switch (httpMethod) {
       case "GET":
@@ -47,7 +51,6 @@ const handleGetRequest = async (id?: string) => {
 
 const handlePostRequest = async (body: string | null) => {
   if (!body) return badRequestResponse("Cuerpo de solicitud faltante");
-
   const newUser = await UserModel.create(JSON.parse(body));
   return createdResponse(newUser);
 };
@@ -57,43 +60,26 @@ const handlePutRequest = async (
   body: string | null
 ) => {
   if (!id || !body) return badRequestResponse("Falta ID o cuerpo");
+  const data = JSON.parse(body);
 
-  const updatedUser = await UserModel.update(id, JSON.parse(body));
+  // Si se indica la acción para modificar la lista de viajes
+  if (data.action === "add" && data.viaje) {
+    const updatedUser = await UserModel.addViaje(id, data.viaje);
+    return successResponse(updatedUser);
+  } else if (data.action === "remove" && data.viajeId) {
+    const updatedUser = await UserModel.removeViaje(id, data.viajeId);
+    return successResponse(updatedUser);
+  }
+
+  // Si no se especifica acción, se realiza una actualización normal
+  const updatedUser = await UserModel.update(id, data);
   return successResponse(updatedUser);
 };
 
 const handleDeleteRequest = async (id: string | undefined) => {
   if (!id) return badRequestResponse("Falta ID");
-
   await UserModel.delete(id);
   return noContentResponse();
-};
-
-// Reutilizar las mismas funciones helper
-const getTokenFromHeaders = (headers: any) => {
-  const authHeader = headers?.Authorization || headers?.authorization;
-  return authHeader?.split(" ")[1];
-};
-
-const verifyToken = (token: string) => {
-  const secret = process.env.JWT_SECRET;
-  if (!secret) throw new Error("JWT_SECRET no está definido");
-  jwt.verify(token, secret);
-};
-
-const unauthorizedResponse = (message: string) => ({
-  statusCode: 401,
-  body: JSON.stringify({ message: `No autorizado: ${message}` }),
-});
-
-const handleJWTError = (err: any) => {
-  if (
-    err instanceof jwt.JsonWebTokenError ||
-    err instanceof jwt.TokenExpiredError
-  ) {
-    return unauthorizedResponse("token inválido");
-  }
-  throw err;
 };
 
 const successResponse = (data: any) => ({

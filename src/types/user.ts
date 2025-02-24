@@ -1,10 +1,11 @@
 import { UserCredentials } from "./userCredentials";
+import { Viaje } from "./viaje";
 
 export interface User {
   id: string;
   credentials: UserCredentials;
-  rol: "Minibus" | "Vendedor" | "Administrador";
   estado: "Activo" | "Inactivo" | "Pendiente";
   fechaCreacion: string;
-  ultimaActualizacion?: string;
+  ultimaActualizacion: string;
+  viajesList: Viaje[];
 }
