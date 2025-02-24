@@ -25,7 +25,7 @@ class MinibusModel {
   private static docClient = DynamoDBDocument.from(MinibusModel.ddbClient, {
     marshallOptions: { removeUndefinedValues: true },
   });
-  private static TABLE_NAME = process.env.MINIBUSES_TABLE || "Minibuses";
+  private static TABLE_NAME = process.env.MINIBUS_TABLE || "Minibuses";
 
   static async create(MinibusData: Omit<Minibus, "id">): Promise<Minibus> {
     const newMinibus: Minibus = {

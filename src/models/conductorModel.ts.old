@@ -24,7 +24,7 @@ class ConductorModel {
   private static docClient = DynamoDBDocument.from(ConductorModel.ddbClient, {
     marshallOptions: { removeUndefinedValues: true },
   });
-  private static TABLE_NAME = process.env.CONDUCTORES_TABLE || "Conductores";
+  private static TABLE_NAME = process.env.MINIBUS_TABLE || "MINIBUSES";
 
   static async create(
     minibusData: Omit<Conductor, "id">

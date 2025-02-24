@@ -2,6 +2,7 @@
 import { APIGatewayProxyEvent, APIGatewayProxyResult } from "aws-lambda";
 import * as jwt from "jsonwebtoken";
 import UserModel from "../models/userModel";
+import ViajeModel from "../models/viajeModel";
 import {
   getTokenFromHeaders,
   verifyToken,
@@ -65,6 +66,11 @@ const handlePutRequest = async (
   // Si se indica la acción para modificar la lista de viajes
   if (data.action === "add" && data.viaje) {
     const updatedUser = await UserModel.addViaje(id, data.viaje);
+    delete (updatedUser as any).viajesList;
+    const updatedViaje = await ViajeModel.addUserToViaje(
+      data.viaje.id,
+      updatedUser
+    );
     return successResponse(updatedUser);
   } else if (data.action === "remove" && data.viajeId) {
     const updatedUser = await UserModel.removeViaje(id, data.viajeId);

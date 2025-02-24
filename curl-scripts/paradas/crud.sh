@@ -11,7 +11,10 @@ list_paradas() {
   local response=$(curl -s -X GET "$PARADAS_ENDPOINT" \
     -H "Authorization: Bearer $TOKEN")
 
-  echo -e "${GREEN}📌 Respuesta de list paradas:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de list paradas:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 create_parada() {
@@ -30,7 +33,10 @@ create_parada() {
           "provincia": "Provincia"
         }')
 
-  echo -e "${GREEN}📌 Respuesta de create parada:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de create parada:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 
   # Extraer el ID de la parada creada
   local id=$(echo "$response" | jq -r '.id')
@@ -50,7 +56,10 @@ get_parada() {
   local response=$(curl -s -X GET "$PARADAS_ENDPOINT/$id" \
     -H "Authorization: Bearer $TOKEN")
 
-  echo -e "${GREEN}📌 Respuesta de get parada:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de get parada:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 update_parada() {
@@ -65,7 +74,10 @@ update_parada() {
           "numero": "456"
         }')
 
-  echo -e "${GREEN}📌 Respuesta de update parada:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de update parada:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 delete_parada() {
@@ -74,7 +86,10 @@ delete_parada() {
   local response=$(curl -s -X DELETE "$PARADAS_ENDPOINT/$id" \
     -H "Authorization: Bearer $TOKEN")
 
-  echo -e "${GREEN}📌 Respuesta de delete parada:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de delete parada:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 # 🔹 **Ejecución de pruebas**

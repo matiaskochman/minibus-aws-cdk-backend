@@ -6,13 +6,6 @@ source curl-scripts/common.sh
 
 VIAJES_ENDPOINT="$API_URL/viajes"
 
-list_viajes() {
-  echo -e "${BLUE}🔹 Listando todos los viajes...${NC}"
-  local response=$(curl -s -X GET "$VIAJES_ENDPOINT" \
-    -H "Authorization: Bearer $TOKEN")
-  echo -e "${GREEN}📌 Respuesta de list viajes:${NC} $response"
-}
-
 create_viaje() {
   echo -e "${BLUE}🔹 Creando un nuevo viaje...${NC}"
   local response=$(curl -s -X POST "$VIAJES_ENDPOINT" \
@@ -25,7 +18,10 @@ create_viaje() {
           "estado": "programado"
         }')
 
-  echo -e "${GREEN}📌 Respuesta de create viaje:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de create viaje:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 
   # Extraer el ID del viaje creado
   local id=$(echo "$response" | jq -r '.id')
@@ -39,12 +35,27 @@ create_viaje() {
   fi
 }
 
+list_viajes() {
+  echo -e "${BLUE}🔹 Listando todos los viajes...${NC}"
+  local response=$(curl -s -X GET "$VIAJES_ENDPOINT" \
+    -H "Authorization: Bearer $TOKEN")
+  echo -e "${GREEN}📌 Respuesta de list viajes:${NC}"
+  echo "$response" | jq .
+  echo ""
+
+}
+
+
+
 get_viaje() {
   local id="$1"
   echo -e "${BLUE}🔹 Obteniendo viaje con ID: ${id}...${NC}"
   local response=$(curl -s -X GET "$VIAJES_ENDPOINT/$id" \
     -H "Authorization: Bearer $TOKEN")
-  echo -e "${GREEN}📌 Respuesta de get viaje:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de get viaje:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 update_viaje() {
@@ -54,7 +65,10 @@ update_viaje() {
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d '{"estado": "en curso"}')
-  echo -e "${GREEN}📌 Respuesta de update viaje:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de update viaje:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 delete_viaje() {
@@ -62,7 +76,10 @@ delete_viaje() {
   echo -e "${BLUE}🔹 Eliminando viaje con ID: ${id}...${NC}"
   local response=$(curl -s -X DELETE "$VIAJES_ENDPOINT/$id" \
     -H "Authorization: Bearer $TOKEN")
-  echo -e "${GREEN}📌 Respuesta de delete viaje:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de delete viaje:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 get_viajes_por_minibus() {
@@ -70,7 +87,10 @@ get_viajes_por_minibus() {
   echo -e "${BLUE}🔹 Obteniendo viajes por minibus (ID: ${minibus_id})...${NC}"
   local response=$(curl -s -X GET "$VIAJES_ENDPOINT?minibusId=${minibus_id}" \
     -H "Authorization: Bearer $TOKEN")
-  echo -e "${GREEN}📌 Respuesta de viajes por minibus:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de viajes por minibus:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 get_viajes_por_ruta() {
@@ -78,7 +98,10 @@ get_viajes_por_ruta() {
   echo -e "${BLUE}🔹 Obteniendo viajes por ruta (ID: ${ruta_id})...${NC}"
   local response=$(curl -s -X GET "$VIAJES_ENDPOINT?rutaId=${ruta_id}" \
     -H "Authorization: Bearer $TOKEN")
-  echo -e "${GREEN}📌 Respuesta de viajes por ruta:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de viajes por ruta:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 # 🔹 **Ejecución de pruebas**
@@ -89,9 +112,13 @@ if [[ -z "$TOKEN" ]]; then
   login
 fi
 
-list_viajes
+# Crear un viaje y almacenar el ID
 VIAJE_ID=$(create_viaje)
 
+# Listar viajes después de crear uno
+
+
+# Verificar si el ID del viaje fue obtenido correctamente antes de continuar
 if [[ -n "$VIAJE_ID" ]]; then
   get_viaje "$VIAJE_ID"
   update_viaje "$VIAJE_ID"
@@ -100,5 +127,7 @@ fi
 
 get_viajes_por_minibus "minibus_id_example"
 get_viajes_por_ruta "ruta_id_example"
+
+list_viajes
 
 echo -e "${YELLOW}========== FIN PRUEBAS PARA VIAJES ==========${NC}"

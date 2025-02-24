@@ -73,4 +73,4 @@ sign_up() {
 }
 
 # Ejecutar login al cargar el script
-login
+# login

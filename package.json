@@ -6,9 +6,10 @@
   },
   "scripts": {
     "build": "tsc",
-    "local": "export AWS_ACCESS_KEY_ID=test export AWS_SECRET_ACCESS_KEY=test export AWS_DEFAULT_REGION=us-east-1 cdklocal bootstrap && cdklocal deploy --require-approval never",
+    "local": "docker compose down -v && docker compose up -d && cross-env AWS_ACCESS_KEY_ID=test AWS_SECRET_ACCESS_KEY=test AWS_DEFAULT_REGION=us-east-1 cdklocal bootstrap && cdklocal deploy --require-approval never",
     "watch": "tsc -w",
     "test": "jest",
+    "test:watch": "jest --watch",
     "cdk": "cdk"
   },
   "devDependencies": {
@@ -19,9 +20,11 @@
     "@types/node": "22.7.9",
     "@types/uuid": "^10.0.0",
     "aws-cdk": "2.178.0",
+    "aws-lambda": "^1.0.7",
+    "cross-env": "^7.0.3",
     "jest": "^29.7.0",
     "source-map-support": "^0.5.21",
-    "ts-jest": "^29.2.5",
+    "ts-jest": "^29.2.6",
     "ts-node": "^10.9.2",
     "typescript": "~5.6.3"
   },

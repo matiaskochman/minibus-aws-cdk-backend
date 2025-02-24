@@ -12,7 +12,7 @@ export interface Viaje {
   reventaActivada: boolean;
   descuento: number;
   ruta: Ruta;
-  // usuarioList: User[];
+  usuarioList: User[];
   paradasDeRuta: ParadaDeRuta[];
   createdAt: string;
 }

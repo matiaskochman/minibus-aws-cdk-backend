@@ -14,7 +14,7 @@ export class MinibusBackendAwsCdkStack extends cdk.Stack {
     // Crear constructs
     const database = new DynamoDBConstruct(this, "Database");
     const handlers = new HandlersConstruct(this, "Handlers", {
-      driversTable: database.driversTable,
+      minibusTable: database.minibusTable,
       routesTable: database.routesTable,
       paradasTable: database.paradasTable,
       paradasDeRutaTable: database.paradasDeRutaTable,

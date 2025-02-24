@@ -12,7 +12,10 @@ list_usuarios() {
   echo "token: ${TOKEN}"
   local response=$(curl -s -X GET "$USUARIOS_ENDPOINT" \
     -H "Authorization: Bearer $TOKEN")
-  echo -e "${GREEN}📌 Respuesta de list usuarios:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de list usuarios:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 create_usuario() {
@@ -32,7 +35,10 @@ create_usuario() {
           "estado": "Pendiente",
           "fechaCreacion": "2025-02-22T12:00:00.000Z"
         }')
-  echo -e "${GREEN}📌 Respuesta de create usuario:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de create usuario:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 get_usuario() {
@@ -40,7 +46,10 @@ get_usuario() {
   echo -e "${BLUE}🔹 Obteniendo usuario con ID: ${id}...${NC}"
   local response=$(curl -s -X GET "$USUARIOS_ENDPOINT/$id" \
     -H "Authorization: Bearer $TOKEN")
-  echo -e "${GREEN}📌 Respuesta de get usuario:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de get usuario:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 update_usuario() {
@@ -50,7 +59,10 @@ update_usuario() {
     -H "Content-Type: application/json" \
     -H "Authorization: Bearer $TOKEN" \
     -d '{"estado": "Activo"}')
-  echo -e "${GREEN}📌 Respuesta de update usuario:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de update usuario:${NC}"
+  echo "$response" | jq .
+  echo ""
+  
 }
 
 delete_usuario() {
@@ -58,11 +70,15 @@ delete_usuario() {
   echo -e "${BLUE}🔹 Eliminando usuario con ID: ${id}...${NC}"
   local response=$(curl -s -X DELETE "$USUARIOS_ENDPOINT/$id" \
     -H "Authorization: Bearer $TOKEN")
-  echo -e "${GREEN}📌 Respuesta de delete usuario:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de delete usuario:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 echo -e "${YELLOW}========== PRUEBAS PARA USUARIOS ==========${NC}"
 
+login
 create_usuario
 list_usuarios
 USUARIO_ID="usuario_id_example"  # Reemplaza con un ID real

@@ -4,7 +4,9 @@ import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
 export class DynamoDBConstruct extends Construct {
   public readonly usersTable: dynamodb.Table;
-  public readonly driversTable: dynamodb.Table;
+  // public readonly driversTable: dynamodb.Table;
+  public readonly minibusTable: dynamodb.Table;
+
   public readonly vendorsTable: dynamodb.Table;
   public readonly routesTable: dynamodb.Table;
 
@@ -23,22 +25,22 @@ export class DynamoDBConstruct extends Construct {
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
     });
     this.usersTable.addGlobalSecondaryIndex({
-      indexName: "UsersByRoleIndex",
-      partitionKey: { name: "role", type: dynamodb.AttributeType.STRING },
+      indexName: "UsersByEmailIndex",
+      partitionKey: { name: "email", type: dynamodb.AttributeType.STRING },
     });
 
     // Tabla de Minibuses
-    this.driversTable = new dynamodb.Table(this, "DriversTable", {
-      tableName: "Drivers",
+    this.minibusTable = new dynamodb.Table(this, "MinibusTable", {
+      tableName: "Minibuses",
       partitionKey: { name: "id", type: dynamodb.AttributeType.STRING },
       billingMode: dynamodb.BillingMode.PAY_PER_REQUEST,
     });
-    this.driversTable.addGlobalSecondaryIndex({
-      indexName: "DriverByUserIndex",
+    this.minibusTable.addGlobalSecondaryIndex({
+      indexName: "MinibusByUserIndex",
       partitionKey: { name: "usuarioId", type: dynamodb.AttributeType.STRING },
     });
-    this.driversTable.addGlobalSecondaryIndex({
-      indexName: "DriversByVendorIndex",
+    this.minibusTable.addGlobalSecondaryIndex({
+      indexName: "MinibusByVendorIndex",
       partitionKey: { name: "vendedorId", type: dynamodb.AttributeType.STRING },
     });
 

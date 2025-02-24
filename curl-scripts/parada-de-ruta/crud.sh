@@ -10,7 +10,9 @@ list_paradas_de_ruta() {
   echo -e "${BLUE}🔹 Listando paradas de ruta...${NC}"
   local response=$(curl -s -X GET "$PARADAS_DE_RUTA_ENDPOINT" \
     -H "Authorization: Bearer $TOKEN")
-  echo -e "${GREEN}📌 Respuesta de list paradas de ruta:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de list paradas de ruta:${NC}"
+  echo "$response" | jq .
+  echo ""
 }
 
 create_parada_de_ruta() {
@@ -24,7 +26,9 @@ create_parada_de_ruta() {
           "horario": "08:00"
         }')
 
-  echo -e "${GREEN}📌 Respuesta de create parada de ruta:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de create parada de ruta:${NC}"
+  echo "$response" | jq .
+  echo ""
 
   # Extraer el ID de la parada creada
   local id=$(echo "$response" | jq -r '.id')
@@ -43,7 +47,10 @@ get_parada_de_ruta() {
   echo -e "${BLUE}🔹 Obteniendo parada de ruta con ID: ${id}...${NC}"
   local response=$(curl -s -X GET "$PARADAS_DE_RUTA_ENDPOINT/$id" \
     -H "Authorization: Bearer $TOKEN")
-  echo -e "${GREEN}📌 Respuesta de get parada de ruta:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de get parada de ruta:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 update_parada_de_ruta() {
@@ -57,7 +64,9 @@ update_parada_de_ruta() {
           "horario": "08:15"
         }')
 
-  echo -e "${GREEN}📌 Respuesta de update parada de ruta:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de update parada de ruta:${NC}"
+  echo "$response" | jq .
+  echo ""
 }
 
 delete_parada_de_ruta() {
@@ -66,7 +75,10 @@ delete_parada_de_ruta() {
   local response=$(curl -s -X DELETE "$PARADAS_DE_RUTA_ENDPOINT/$id" \
     -H "Authorization: Bearer $TOKEN")
 
-  echo -e "${GREEN}📌 Respuesta de delete parada de ruta:${NC} $response"
+  echo -e "${GREEN}📌 Respuesta de delete parada de ruta:${NC}"
+  echo "$response" | jq .
+  echo ""
+
 }
 
 echo -e "${YELLOW}========== PRUEBAS PARA PARADAS DE RUTA ==========${NC}"

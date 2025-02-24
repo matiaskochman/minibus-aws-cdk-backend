@@ -24,7 +24,7 @@ A continuación se muestra el documento original modificado, integrando nuevos e
 La aplicación de transporte en minibuses tendrá cuatro componentes principales:
 
 1. **App para Clientes**: Permite a los pasajeros buscar y comprar tickets para rutas creadas por minibuses.
-2. **App para Conductores**: Los minibuses podrán crear, gestionar y operar sus propias rutas y viajes.
+2. **App para MINIBUSES**: Los minibuses podrán crear, gestionar y operar sus propias rutas y viajes.
 3. **App de Administración**: Gestiona minibuses, rutas, pagos y puede aprobar rutas si es necesario.
 4. **App para Vendedores**: Permite a los usuarios vendedores reclutar minibuses y recibir una comisión por sus ventas durante un período determinado.
 
@@ -32,7 +32,7 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
 
 ## 🏗 **Modificación Clave**
 
-- **Conductores** podrán **crear y gestionar** sus propias rutas en lugar de que solo el administrador las establezca.
+- **MINIBUSES** podrán **crear y gestionar** sus propias rutas en lugar de que solo el administrador las establezca.
 - Una ruta puede tener múltiples paradas, y los pasajeros pueden buscar viajes entre cualquier par de paradas dentro de una ruta existente.
 - Los **tickets pueden ser revendidos** a otros clientes mediante un **marketplace**, donde se listan los tickets disponibles para reventa.
 - Cada **viaje** puede activarse o desactivarse para permitir la reventa de tickets.
@@ -64,7 +64,7 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
 
 ---
 
-## 🚗 **2. App para Conductores (MVP)**
+## 🚗 **2. App para MINIBUSES (MVP)**
 
 ### ✅ Funcionalidades
 
@@ -120,7 +120,7 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
 | ID  | Nombre | Rol (Cliente/Minibus/Vendedor/Admin) | Teléfono | Email | Verificación | Telegram | Estado |
 | --- | ------ | ------------------------------------ | -------- | ----- | ------------ | -------- | ------ |
 
-#### 🚌 **Conductores**
+#### 🚌 **MINIBUSES**
 
 | ID  | Usuario_ID | Foto_DNI | Foto_VTV | Estado (Pendiente/Aprobado) | Vendedor_ID |
 | --- | ---------- | -------- | -------- | --------------------------- | ----------- |
@@ -158,7 +158,7 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
 - `POST /asociar-minibus` → Asociar un minibus a un vendedor mediante la app de administración.
 - `GET /comisiones` → Ver las comisiones acumuladas.
 
-#### 🔹 **Para Conductores**
+#### 🔹 **Para MINIBUSES**
 
 - `POST /registro` → Subir DNI y VTV para validación.
 - `POST /rutas` → Crear nueva ruta con múltiples paradas.
@@ -196,7 +196,7 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
 - **Autenticación y Gestión de Sesión**
   - `POST /admin/login` → Inicio de sesión para administradores.
   - `POST /admin/logout` → Cierre de sesión.
-- **Gestión de Conductores**
+- **Gestión de MINIBUSES**
   - `GET /admin/minibuses` → Listar todos los minibuses registrados.
   - `GET /admin/minibuses/{id}` → Obtener detalles de un minibus (incluyendo documentos: DNI y VTV).
   - `PUT /admin/minibuses/{id}/estado` → Actualizar el estado de un minibus (por ejemplo, aprobar o rechazar la validación de documentos).
@@ -223,7 +223,7 @@ La aplicación de transporte en minibuses tendrá cuatro componentes principales
 La aplicación ahora integra un completo ecosistema para gestionar:
 
 - **Clientes**: Búsqueda, compra y reventa de tickets, con aplicación de descuentos y notificaciones.
-- **Conductores**: Creación y gestión de rutas y viajes, validación de documentos, actualización de estados y aplicación de descuentos en viajes.
+- **MINIBUSES**: Creación y gestión de rutas y viajes, validación de documentos, actualización de estados y aplicación de descuentos en viajes.
 - **Administradores**: Supervisión y aprobación de rutas, validación de documentos, gestión financiera, incidencias y asociaciones entre vendedores y minibuses.
 - **Vendedores**: Reclutamiento de minibuses y seguimiento de comisiones por ventas.
 

@@ -7,7 +7,7 @@ import * as path from "path";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 
 interface HandlersConstructProps {
-  driversTable: dynamodb.Table;
+  minibusTable: dynamodb.Table;
   routesTable: dynamodb.Table;
   paradasTable: dynamodb.Table;
   paradasDeRutaTable: dynamodb.Table;
@@ -38,7 +38,7 @@ export class HandlersConstruct extends Construct {
         handler: "handler",
         environment: {
           USE_LOCALSTACK: process.env.USE_LOCALSTACK || "true",
-          CONDUCTORES_TABLE: props.driversTable.tableName,
+          MINIBUS_TABLE: props.minibusTable.tableName,
           JWT_SECRET: process.env.JWT_SECRET as string, // Agregado
         },
         bundling: { externalModules: ["@aws-sdk"] },
@@ -146,7 +146,7 @@ export class HandlersConstruct extends Construct {
 
     props.usersTable.grantReadWriteData(this.usuariosHandler);
     props.viajesTable.grantReadWriteData(this.viajesHandler);
-    props.driversTable.grantReadWriteData(this.minibusesHandler);
+    props.minibusTable.grantReadWriteData(this.minibusesHandler);
     props.routesTable.grantReadWriteData(this.rutasHandler);
     props.paradasTable.grantReadWriteData(this.paradasHandler);
     props.paradasDeRutaTable.grantReadWriteData(this.paradasDeRutaHandler);
